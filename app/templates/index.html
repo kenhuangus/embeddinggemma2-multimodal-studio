@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EmbeddingGemma 2 Multimodal Studio</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#EEF2FF',
+              500: '#6366F1',
+              600: '#4F46E5',
+              700: '#4338CA',
+            },
+            gemini: {
+              cyan: '#38BDF8',
+              purple: '#A855F7',
+              emerald: '#10B981',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    code, pre {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .glass {
+      background: rgba(17, 24, 39, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.55);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+    .glow-cyan {
+      box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.25);
+    }
+    .glow-purple {
+      box-shadow: 0 0 25px -5px rgba(168, 85, 247, 0.25);
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-indigo-500 selection:text-white">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 glass border-b border-slate-800/80 px-6 py-3.5">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <i data-lucide="layers" class="w-5 h-5 text-white"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              EmbeddingGemma 2
+            </h1>
+            <span class="text-xs px-2 py-0.5 rounded-full font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+              v2.0 • 768d
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">Universal Multimodal Stream Studio • Text • Code • Vision • Audio</p>
+        </div>
+      </div>
+
+      <!-- System Telemetry Badges -->
+      <div class="flex items-center space-x-3">
+        <div class="hidden sm:flex items-center space-x-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="text-slate-400">Model:</span>
+          <span id="header-config-badge" class="font-medium text-slate-200">Full (740M)</span>
+        </div>
+        <div class="hidden md:flex items-center space-x-2 bg-slate-900/90 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
+          <i data-lucide="cpu" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span id="header-device-badge" class="font-medium text-slate-200">CPU</span>
+        </div>
+        <button onclick="openConfigModal()" class="flex items-center space-x-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 text-xs font-medium px-3 py-1.5 rounded-lg transition">
+          <i data-lucide="sliders" class="w-3.5 h-3.5"></i>
+          <span>Modular Switch</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <div class="border-b border-slate-800/80 bg-slate-900/40">
+    <div class="max-w-7xl mx-auto px-6 flex space-x-8 text-sm">
+      <button onclick="switchTab('compare')" id="tab-btn-compare" class="py-3.5 border-b-2 font-medium border-indigo-500 text-indigo-400 flex items-center space-x-2 transition">
+        <i data-lucide="git-compare" class="w-4 h-4"></i>
+        <span>Pairwise Matcher & MRL</span>
+      </button>
+      <button onclick="switchTab('search')" id="tab-btn-search" class="py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition">
+        <i data-lucide="search" class="w-4 h-4"></i>
+        <span>Multimodal Search & RAG</span>
+      </button>
+      <button onclick="switchTab('embed')" id="tab-btn-embed" class="py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition">
+        <i data-lucide="binary" class="w-4 h-4"></i>
+        <span>Vector & Interleaved Studio</span>
+      </button>
+      <button onclick="switchTab('architecture')" id="tab-btn-architecture" class="py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition">
+        <i data-lucide="info" class="w-4 h-4"></i>
+        <span>Model Architecture</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-6">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: PAIRWISE MATCHER & MRL INSPECTOR -->
+    <!-- ========================================== -->
+    <section id="tab-compare" class="space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+            <span>Cross-Modal Pairwise Matcher</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-normal">Streaming Mode</span>
+          </h2>
+          <p class="text-sm text-slate-400">Compute semantic affinity between any two modalities and inspect Matryoshka (MRL) dimension retention in real time.</p>
+        </div>
+        <button onclick="runPairwiseCompare()" id="btn-run-compare" class="flex items-center justify-center space-x-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-indigo-600/25 transition">
+          <i data-lucide="play" class="w-4 h-4"></i>
+          <span>Run Streamed Match</span>
+        </button>
+      </div>
+
+      <!-- Two Input Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Input A -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-indigo-400 flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+              <span>Input A</span>
+            </span>
+            <!-- Modality selector -->
+            <select id="compare-a-modality" onchange="updateCompareInputUI('a')" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="text">Text Query</option>
+              <option value="code">Code Snippet</option>
+              <option value="image">Image File</option>
+              <option value="audio">Audio File</option>
+              <option value="video">Video File</option>
+            </select>
+          </div>
+
+          <!-- Quick Samples for A -->
+          <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+            <span>Quick:</span>
+            <button onclick="loadSampleA('northern_lights')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Aurora Query</button>
+            <button onclick="loadSampleA('binary_search_q')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Code Query</button>
+            <button onclick="loadSampleA('red_img')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Red Image</button>
+            <button onclick="loadSampleA('bell_audio')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Bell Audio</button>
+            <button onclick="loadSampleA('video_motion')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Motion Video</button>
+          </div>
+
+          <!-- Dynamic Container for A -->
+          <div id="compare-a-container" class="space-y-3">
+            <textarea id="compare-a-text" rows="4" class="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-normal" placeholder="Enter text or query...">What causes the northern lights?</textarea>
+            
+            <div id="compare-a-prompt-wrapper" class="flex items-center space-x-2 text-xs">
+              <span class="text-slate-400">Task Prompt:</span>
+              <select id="compare-a-prompt" class="bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-300">
+                <option value="SearchQuery">SearchQuery (Query intent)</option>
+                <option value="Document">Document (Passive chunk)</option>
+                <option value="CodeRetrieval">CodeRetrieval (Code search)</option>
+                <option value="QuestionAnswering">QuestionAnswering (QA)</option>
+                <option value="SentenceSimilarity">SentenceSimilarity (STS)</option>
+              </select>
+            </div>
+          </div>
+          <div id="compare-a-preview" class="hidden"></div>
+        </div>
+
+        <!-- Input B -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-purple-400 flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-purple-500"></span>
+              <span>Input B</span>
+            </span>
+            <!-- Modality selector -->
+            <select id="compare-b-modality" onchange="updateCompareInputUI('b')" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-2.5 py-1 text-slate-200 focus:outline-none focus:border-purple-500">
+              <option value="text">Text Document</option>
+              <option value="code">Code Snippet</option>
+              <option value="image">Image File</option>
+              <option value="audio">Audio File</option>
+              <option value="video">Video File</option>
+            </select>
+          </div>
+
+          <!-- Quick Samples for B -->
+          <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+            <span>Quick:</span>
+            <button onclick="loadSampleB('aurora_doc')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Aurora Doc</button>
+            <button onclick="loadSampleB('binary_search_code')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Binary Search Code</button>
+            <button onclick="loadSampleB('blue_img')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Blue Image</button>
+            <button onclick="loadSampleB('ocean_audio')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Ocean Audio</button>
+            <button onclick="loadSampleB('video_motion')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Motion Video</button>
+          </div>
+
+          <!-- Dynamic Container for B -->
+          <div id="compare-b-container" class="space-y-3">
+            <textarea id="compare-b-text" rows="4" class="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500 font-normal" placeholder="Enter document content...">The northern lights are caused by charged particles from the solar wind colliding with atmospheric gases in Earth's magnetic field.</textarea>
+            
+            <div id="compare-b-prompt-wrapper" class="flex items-center space-x-2 text-xs">
+              <span class="text-slate-400">Task Prompt:</span>
+              <select id="compare-b-prompt" class="bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-300">
+                <option value="Document">Document (Passive chunk)</option>
+                <option value="SearchQuery">SearchQuery (Query intent)</option>
+                <option value="CodeRetrieval">CodeRetrieval (Code search)</option>
+                <option value="QuestionAnswering">QuestionAnswering (QA)</option>
+                <option value="SentenceSimilarity">SentenceSimilarity (STS)</option>
+              </select>
+            </div>
+          </div>
+          <div id="compare-b-preview" class="hidden"></div>
+        </div>
+
+      </div>
+
+      <!-- Live Streaming Progress Bar & Terminal -->
+      <div id="compare-stream-box" class="hidden glass-card rounded-2xl p-5 border border-slate-800 space-y-3">
+        <div class="flex items-center justify-between text-xs">
+          <div class="flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+            <span id="compare-stream-status" class="font-medium text-slate-300">Processing stream...</span>
+          </div>
+          <span id="compare-stream-pct" class="text-cyan-400 font-mono">0%</span>
+        </div>
+        <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+          <div id="compare-progress-bar" class="bg-gradient-to-r from-indigo-500 via-cyan-400 to-purple-500 h-full w-0 transition-all duration-300"></div>
+        </div>
+      </div>
+
+      <!-- Comparison Result Section -->
+      <div id="compare-result-box" class="hidden glass-card rounded-2xl p-6 border border-slate-800/80 space-y-6">
+        <div class="flex flex-col lg:flex-row items-center justify-between gap-6 pb-6 border-b border-slate-800">
+          <div class="flex items-center space-x-5">
+            <!-- Score Gauge -->
+            <div class="relative w-28 h-28 flex items-center justify-center rounded-2xl bg-slate-900/90 border border-slate-700/80 shadow-inner">
+              <div class="text-center">
+                <span id="res-score-number" class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-300">0.00</span>
+                <span class="block text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">Cosine Sim</span>
+              </div>
+            </div>
+            <div>
+              <h3 class="text-lg font-bold text-white">Semantic Match Evaluation</h3>
+              <p id="res-score-interpretation" class="text-sm text-slate-400 mt-1">Calculating semantic affinity...</p>
+              <div class="flex items-center space-x-4 mt-2 text-xs text-slate-400 font-mono">
+                <span>Latency: <strong id="res-latency" class="text-slate-200">0.00s</strong></span>
+                <span>Space: <strong class="text-slate-200">Shared 768d Manifold</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl text-xs text-emerald-400">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span>Unit-Normalized Projections Verified</span>
+          </div>
+        </div>
+
+        <!-- Matryoshka (MRL) Spectrum Table -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-sm font-semibold text-white flex items-center space-x-2">
+              <i data-lucide="layers" class="w-4 h-4 text-cyan-400"></i>
+              <span>Matryoshka Representation Learning (MRL) Dimension Breakdown</span>
+            </h4>
+            <span class="text-xs text-slate-400">Dynamic truncation without retraining</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400">
+                  <th class="py-2.5 px-3">Dimensions</th>
+                  <th class="py-2.5 px-3">Storage Reduction</th>
+                  <th class="py-2.5 px-3">Cosine Similarity</th>
+                  <th class="py-2.5 px-3">Information Retention</th>
+                  <th class="py-2.5 px-3">Retention Visualizer</th>
+                </tr>
+              </thead>
+              <tbody id="mrl-table-body" class="divide-y divide-slate-800/60 font-mono text-slate-300">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: MULTIMODAL SEARCH & RAG STUDIO -->
+    <!-- ========================================== -->
+    <section id="tab-search" class="hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+            <span>Multimodal Corpus Search & Retrieval</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-normal">Streaming RAG</span>
+          </h2>
+          <p class="text-sm text-slate-400">Query a unified index containing Text, Code, Images, Audio, and Video using any modality as your query.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="openAddCorpusModal()" class="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-xl text-slate-200 transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+            <span>Add Item</span>
+          </button>
+          <button onclick="resetCorpus()" class="flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-xl text-slate-400 hover:text-slate-200 transition">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            <span>Reset Index</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Search Bar Card -->
+      <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+          <div class="md:col-span-2">
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Query Modality</label>
+            <select id="search-query-modality" onchange="updateSearchQueryUI()" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="text">Text Query</option>
+              <option value="code">Code Snippet</option>
+              <option value="image">Image Query</option>
+              <option value="audio">Audio Query</option>
+              <option value="video">Video Query</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">Truncate Dimension (MRL)</label>
+            <select id="search-truncate-dim" class="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+              <option value="768">768d (Full Fidelity)</option>
+              <option value="512">512d (1.5x Storage Compression)</option>
+              <option value="256">256d (3x Storage Compression)</option>
+              <option value="128">128d (6x Storage Compression)</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button onclick="runStreamSearch()" id="btn-run-search" class="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-medium text-sm p-2.5 rounded-xl shadow-lg shadow-emerald-600/25 transition">
+              <i data-lucide="sparkles" class="w-4 h-4"></i>
+              <span>Stream Search</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Search Query Input Container -->
+        <div id="search-query-container" class="space-y-3">
+          <input type="text" id="search-query-text" value="Ocean waves and coastal nature" class="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="Type a search query...">
+          
+          <div class="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
+            <span>Suggestions:</span>
+            <button onclick="setSearchQuery('Ocean waves and coastal nature')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Ocean waves</button>
+            <button onclick="setSearchQuery('Python algorithm for searching in sorted array')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Binary Search Code</button>
+            <button onclick="setSearchQuery('Bright red color geometric polygon')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Red Square</button>
+            <button onclick="setSearchQuery('Resonant bell and church chime')" class="px-2 py-0.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-300">Bell Tone</button>
+          </div>
+        </div>
+        <div id="search-query-media-preview" class="hidden"></div>
+      </div>
+
+      <!-- Live Search Stream Box -->
+      <div id="search-stream-box" class="hidden glass-card rounded-2xl p-4 border border-slate-800 space-y-2">
+        <div class="flex items-center justify-between text-xs">
+          <span id="search-stream-status" class="text-slate-300 flex items-center space-x-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>Running parallel vector similarity scan...</span>
+          </span>
+          <span id="search-stream-pct" class="text-emerald-400 font-mono">0%</span>
+        </div>
+        <div class="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+          <div id="search-progress-bar" class="bg-gradient-to-r from-emerald-400 to-cyan-400 h-full w-0 transition-all duration-200"></div>
+        </div>
+      </div>
+
+      <!-- Ranked Results Grid -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-white">Ranked Retrieval Results</h3>
+          <span id="search-results-count" class="text-xs text-slate-400">8 items indexed</span>
+        </div>
+        <div id="search-results-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: VECTOR & INTERLEAVED STUDIO -->
+    <!-- ========================================== -->
+    <section id="tab-embed" class="hidden space-y-6">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+            <span>Vector & Interleaved Studio</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20 font-normal">Raw Manifold</span>
+          </h2>
+          <p class="text-sm text-slate-400">Inspect raw embeddings, export vectors as JSON, or compose interleaved multimodal inputs with special tags.</p>
+        </div>
+        <button onclick="runSingleEmbed()" id="btn-run-embed" class="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium text-sm px-5 py-2.5 rounded-xl shadow-lg shadow-purple-600/25 transition">
+          <i data-lucide="play" class="w-4 h-4"></i>
+          <span>Stream Embedding</span>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Input Composer -->
+        <div class="lg:col-span-2 glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-purple-400">Input Specification</span>
+            <select id="embed-modality" onchange="updateEmbedInputUI()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg px-2.5 py-1 text-slate-200">
+              <option value="text">Single Text</option>
+              <option value="code">Source Code</option>
+              <option value="image">Image</option>
+              <option value="audio">Audio</option>
+              <option value="video">Video</option>
+              <option value="interleaved">Interleaved (Text + Media)</option>
+            </select>
+          </div>
+
+          <div id="embed-input-container" class="space-y-3">
+            <textarea id="embed-text-input" rows="4" class="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500" placeholder="Type text to embed...">Modern search and RAG applications increasingly require native multimodal comprehension.</textarea>
+            
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label class="block text-slate-400 mb-1">Prompt Instruction</label>
+                <select id="embed-prompt" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-300">
+                  <option value="SearchQuery">SearchQuery</option>
+                  <option value="Document">Document</option>
+                  <option value="CodeRetrieval">CodeRetrieval</option>
+                  <option value="QuestionAnswering">QuestionAnswering</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-slate-400 mb-1">Truncation (MRL)</label>
+                <select id="embed-dim" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-300">
+                  <option value="768">768d (Original)</option>
+                  <option value="512">512d</option>
+                  <option value="256">256d</option>
+                  <option value="128">128d</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div id="embed-media-preview" class="hidden"></div>
+        </div>
+
+        <!-- Vector Telemetry Output -->
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 flex flex-col justify-between space-y-4">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Vector Diagnostics</span>
+            <div class="mt-4 space-y-3 text-xs">
+              <div class="flex justify-between py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">Vector Dimension:</span>
+                <span id="diag-dim" class="font-mono text-slate-200">768d</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">L2 Norm:</span>
+                <span id="diag-norm" class="font-mono text-emerald-400">1.0000 (Unit Sphere)</span>
+              </div>
+              <div class="flex justify-between py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">Encoding Latency:</span>
+                <span id="diag-latency" class="font-mono text-slate-200">-</span>
+              </div>
+            </div>
+
+            <!-- Preview Slice -->
+            <div class="mt-4">
+              <span class="block text-[11px] font-semibold text-slate-400 mb-1.5">First 16 Components Preview:</span>
+              <div id="diag-slice" class="bg-slate-900 p-2.5 rounded-xl font-mono text-[10px] text-cyan-300 leading-relaxed overflow-x-auto border border-slate-800/80">
+                [0.0000, 0.0000, ...]
+              </div>
+            </div>
+          </div>
+
+          <button onclick="downloadActiveVector()" id="btn-download-vector" disabled class="w-full py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 text-xs font-medium rounded-xl border border-slate-700 transition flex items-center justify-center space-x-1.5">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Export Vector JSON</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: ARCHITECTURE & DEEP DIVE -->
+    <!-- ========================================== -->
+    <section id="tab-architecture" class="hidden space-y-6">
+      <div>
+        <h2 class="text-xl font-bold text-white">EmbeddingGemma 2 Architecture & Specifications</h2>
+        <p class="text-sm text-slate-400">How Google DeepMind engineered sub-1B multimodal embeddings with Matryoshka Representation Learning.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+          <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">270M</div>
+          <h4 class="text-sm font-semibold text-white">Text & Code Base</h4>
+          <p class="text-xs text-slate-400">Adapted Gemma 4 decoder with 8,192-token context window. Outperforms EmbeddingGemma 1 by 14% on MTEB Code.</p>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">+170M</div>
+          <h4 class="text-sm font-semibold text-white">Vision Module</h4>
+          <p class="text-xs text-slate-400">Ingests JPEG/PNG images, PDF pages, slide decks, and video frames (1 fps sampling) projecting directly into 768d.</p>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+          <div class="w-8 h-8 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">+300M</div>
+          <h4 class="text-sm font-semibold text-white">Audio Module</h4>
+          <p class="text-xs text-slate-400">Dedicated speech and sound encoder consuming 16 kHz mono raw waveforms without intermediate ASR transcription.</p>
+        </div>
+        <div class="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">MRL</div>
+          <h4 class="text-sm font-semibold text-white">Matryoshka Truncation</h4>
+          <p class="text-xs text-slate-400">Dynamic truncation to 512d, 256d, or 128d slashing vector DB storage by up to 6x with 90-98% semantic quality retention.</p>
+        </div>
+      </div>
+
+      <div class="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <i data-lucide="cpu" class="w-4 h-4 text-indigo-400"></i>
+          <span>Modular Configuration Memory Matrix</span>
+        </h3>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 text-slate-400">
+                <th class="py-2.5 px-3">Configuration</th>
+                <th class="py-2.5 px-3">Active Parameter Count</th>
+                <th class="py-2.5 px-3">Modalities Supported</th>
+                <th class="py-2.5 px-3">RAM / VRAM Footprint</th>
+                <th class="py-2.5 px-3">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60 font-mono text-slate-300">
+              <tr>
+                <td class="py-3 px-3 font-semibold text-indigo-400">Full Multimodal</td>
+                <td class="py-3 px-3">740M</td>
+                <td class="py-3 px-3">Text, Code, Images, Video, Audio</td>
+                <td class="py-3 px-3">~1.4 GB (fp16)</td>
+                <td class="py-3 px-3"><button onclick="switchModel('full')" class="px-2.5 py-1 bg-indigo-600/30 text-indigo-300 rounded hover:bg-indigo-600/50">Select</button></td>
+              </tr>
+              <tr>
+                <td class="py-3 px-3 font-semibold text-cyan-400">Text + Vision</td>
+                <td class="py-3 px-3">440M</td>
+                <td class="py-3 px-3">Text, Code, Images, Video</td>
+                <td class="py-3 px-3">~880 MB (fp16)</td>
+                <td class="py-3 px-3"><button onclick="switchModel('text_vision')" class="px-2.5 py-1 bg-cyan-600/30 text-cyan-300 rounded hover:bg-cyan-600/50">Select</button></td>
+              </tr>
+              <tr>
+                <td class="py-3 px-3 font-semibold text-purple-400">Text + Audio</td>
+                <td class="py-3 px-3">570M</td>
+                <td class="py-3 px-3">Text, Code, Speech / Sound</td>
+                <td class="py-3 px-3">~1.1 GB (fp16)</td>
+                <td class="py-3 px-3"><button onclick="switchModel('text_audio')" class="px-2.5 py-1 bg-purple-600/30 text-purple-300 rounded hover:bg-purple-600/50">Select</button></td>
+              </tr>
+              <tr>
+                <td class="py-3 px-3 font-semibold text-emerald-400">Text & Code Base</td>
+                <td class="py-3 px-3">270M</td>
+                <td class="py-3 px-3">Text, Codebase repositories</td>
+                <td class="py-3 px-3">~540 MB (fp16)</td>
+                <td class="py-3 px-3"><button onclick="switchModel('text_only')" class="px-2.5 py-1 bg-emerald-600/30 text-emerald-300 rounded hover:bg-emerald-600/50">Select</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Modular Switch Modal -->
+  <div id="modal-config" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass max-w-md w-full rounded-2xl p-6 border border-slate-700 space-y-5">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <i data-lucide="sliders" class="w-4 h-4 text-indigo-400"></i>
+          <span>Switch Modular Encoder Setup</span>
+        </h3>
+        <button onclick="closeConfigModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <p class="text-xs text-slate-400">All configurations share the same vector space checkpoint, allowing zero-reindexing interoperability.</p>
+      
+      <div class="space-y-2.5 text-xs">
+        <button onclick="switchModel('full')" class="w-full p-3 rounded-xl bg-slate-900 hover:bg-indigo-950/40 border border-slate-800 hover:border-indigo-500/50 text-left transition flex justify-between items-center">
+          <div>
+            <div class="font-bold text-white">Full Multimodal (740M)</div>
+            <div class="text-slate-400 text-[11px]">Text, Code, Vision, and Audio</div>
+          </div>
+          <span class="text-indigo-400 font-mono">1.4 GB</span>
+        </button>
+        <button onclick="switchModel('text_vision')" class="w-full p-3 rounded-xl bg-slate-900 hover:bg-cyan-950/40 border border-slate-800 hover:border-cyan-500/50 text-left transition flex justify-between items-center">
+          <div>
+            <div class="font-bold text-white">Text + Vision (440M)</div>
+            <div class="text-slate-400 text-[11px]">Text, Code, Images, Video</div>
+          </div>
+          <span class="text-cyan-400 font-mono">880 MB</span>
+        </button>
+        <button onclick="switchModel('text_audio')" class="w-full p-3 rounded-xl bg-slate-900 hover:bg-purple-950/40 border border-slate-800 hover:border-purple-500/50 text-left transition flex justify-between items-center">
+          <div>
+            <div class="font-bold text-white">Text + Audio (570M)</div>
+            <div class="text-slate-400 text-[11px]">Text, Code, Speech / Sound</div>
+          </div>
+          <span class="text-purple-400 font-mono">1.1 GB</span>
+        </button>
+        <button onclick="switchModel('text_only')" class="w-full p-3 rounded-xl bg-slate-900 hover:bg-emerald-950/40 border border-slate-800 hover:border-emerald-500/50 text-left transition flex justify-between items-center">
+          <div>
+            <div class="font-bold text-white">Text & Code Base (270M)</div>
+            <div class="text-slate-400 text-[11px]">Ultra-lean codebase indexing</div>
+          </div>
+          <span class="text-emerald-400 font-mono">540 MB</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Corpus Item Modal -->
+  <div id="modal-add-corpus" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass max-w-lg w-full rounded-2xl p-6 border border-slate-700 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+          <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
+          <span>Index Custom Item to Corpus</span>
+        </h3>
+        <button onclick="closeAddCorpusModal()" class="text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Title</label>
+          <input type="text" id="add-title" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200" placeholder="e.g. My Architecture Doc">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Modality</label>
+          <select id="add-modality" onchange="updateAddModalUI()" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200">
+            <option value="text">Text Document</option>
+            <option value="code">Code Snippet</option>
+            <option value="image">Image File</option>
+            <option value="audio">Audio File</option>
+            <option value="video">Video File</option>
+          </select>
+        </div>
+        <div id="add-content-wrapper">
+          <label class="block text-slate-400 mb-1">Text Content</label>
+          <textarea id="add-content-text" rows="3" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-200" placeholder="Type text or code..."></textarea>
+        </div>
+        <div id="add-file-wrapper" class="hidden">
+          <label class="block text-slate-400 mb-1">Upload File</label>
+          <input type="file" id="add-file" class="w-full text-slate-300">
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="closeAddCorpusModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs">Cancel</button>
+        <button onclick="submitAddCorpusItem()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold">Save & Index</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Client Application -->
+  <script>
+    // State
+    let activeTab = 'compare';
+    let currentVector = null;
+    let inputAFile = null;
+    let inputBFile = null;
+    let searchQueryFile = null;
+
+    // Presets
+    const SAMPLES = {
+      northern_lights: "What causes the northern lights?",
+      binary_search_q: "Python function for binary search in a sorted list",
+      aurora_doc: "The northern lights (aurora borealis) are caused by charged particles from the solar wind colliding with atmospheric gases in Earth's magnetosphere, producing glowing emerald and violet curtains.",
+      binary_search_code: "def binary_search(arr, target):\n    low, high = 0, len(arr) - 1\n    while low <= high:\n        mid = (low + high) // 2\n        if arr[mid] == target: return mid\n        elif arr[mid] < target: low = mid + 1\n        else: high = mid - 1\n    return -1",
+      red_img: "/sample_assets/red_square.png",
+      blue_img: "/sample_assets/ocean_blue.png",
+      bell_audio: "/sample_assets/deep_bell.wav",
+      ocean_audio: "/sample_assets/ocean_waves.wav",
+      video_motion: "/sample_assets/motion_demo.mp4"
+    };
+
+    // Initialize Lucide Icons & Status
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      fetchStatus();
+      loadCorpus();
+    });
+
+    function switchTab(tabId) {
+      activeTab = tabId;
+      ['compare', 'search', 'embed', 'architecture'].forEach(t => {
+        const section = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`tab-btn-${t}`);
+        if (t === tabId) {
+          section.classList.remove('hidden');
+          btn.className = "py-3.5 border-b-2 font-medium border-indigo-500 text-indigo-400 flex items-center space-x-2 transition";
+        } else {
+          section.classList.add('hidden');
+          btn.className = "py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition";
+        }
+      });
+      lucide.createIcons();
+    }
+
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        document.getElementById('header-config-badge').innerText = `${data.config_name} (${data.parameters})`;
+        document.getElementById('header-device-badge').innerText = data.device;
+      } catch (err) {
+        console.error("Failed to fetch engine status:", err);
+      }
+    }
+
+    function openConfigModal() {
+      document.getElementById('modal-config').classList.remove('hidden');
+    }
+    function closeConfigModal() {
+      document.getElementById('modal-config').classList.add('hidden');
+    }
+
+    async function switchModel(configKey) {
+      closeConfigModal();
+      document.getElementById('header-config-badge').innerText = "Switching...";
+      try {
+        const res = await fetch('/api/model/switch', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ config_key: configKey })
+        });
+        const data = await res.json();
+        document.getElementById('header-config-badge').innerText = `${data.config_name} (${data.parameters})`;
+        alert(`Switched to ${data.config_name} (${data.parameters}) in ${data.load_time}!`);
+      } catch (err) {
+        alert("Failed to switch model configuration: " + err);
+      }
+    }
+
+    // Dynamic UI builder for Input A / B
+    function updateCompareInputUI(side) {
+      const modality = document.getElementById(`compare-${side}-modality`).value;
+      const container = document.getElementById(`compare-${side}-container`);
+      const preview = document.getElementById(`compare-${side}-preview`);
+      preview.classList.add('hidden');
+      preview.innerHTML = '';
+
+      if (modality === 'text' || modality === 'code') {
+        container.innerHTML = `
+          <textarea id="compare-${side}-text" rows="4" class="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono" placeholder="Type ${modality} here..."></textarea>
+          <div class="flex items-center space-x-2 text-xs">
+            <span class="text-slate-400">Task Prompt:</span>
+            <select id="compare-${side}-prompt" class="bg-slate-900 border border-slate-800 rounded px-2 py-1 text-slate-300">
+              <option value="${modality === 'code' ? 'CodeRetrieval' : 'SearchQuery'}">${modality === 'code' ? 'CodeRetrieval' : 'SearchQuery'}</option>
+              <option value="Document">Document</option>
+              <option value="QuestionAnswering">QuestionAnswering</option>
+              <option value="SentenceSimilarity">SentenceSimilarity</option>
+            </select>
+          </div>
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="border-2 border-dashed border-slate-800 hover:border-slate-700 rounded-xl p-4 text-center cursor-pointer transition" onclick="document.getElementById('file-compare-${side}').click()">
+            <input type="file" id="file-compare-${side}" class="hidden" onchange="handleCompareFileUpload(event, '${side}', '${modality}')">
+            <i data-lucide="upload-cloud" class="w-6 h-6 text-slate-400 mx-auto mb-2"></i>
+            <span class="block text-xs font-medium text-slate-300">Click to upload or drag ${modality}</span>
+            <span class="block text-[10px] text-slate-500 mt-0.5">Supports ${modality === 'image' ? 'PNG, JPG' : modality === 'audio' ? 'WAV, MP3' : 'MP4, WebM'}</span>
+          </div>
+        `;
+        lucide.createIcons();
+      }
+    }
+
+    async function handleCompareFileUpload(e, side, modality) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      
+      if (side === 'a') inputAFile = data.saved_path;
+      else inputBFile = data.saved_path;
+
+      showMediaPreview(side, modality, data.media_url);
+    }
+
+    function showMediaPreview(side, modality, url) {
+      const preview = document.getElementById(`compare-${side}-preview`);
+      preview.classList.remove('hidden');
+      if (modality === 'image') {
+        preview.innerHTML = `<img src="${url}" class="w-full h-32 object-cover rounded-xl border border-slate-800">`;
+      } else if (modality === 'audio') {
+        preview.innerHTML = `<audio controls src="${url}" class="w-full mt-2"></audio>`;
+      } else if (modality === 'video') {
+        preview.innerHTML = `<video controls src="${url}" class="w-full h-36 object-cover rounded-xl border border-slate-800"></video>`;
+      }
+    }
+
+    function loadSampleA(key) {
+      const val = SAMPLES[key];
+      if (key === 'northern_lights' || key === 'binary_search_q') {
+        document.getElementById('compare-a-modality').value = (key === 'binary_search_q' ? 'code' : 'text');
+        updateCompareInputUI('a');
+        document.getElementById('compare-a-text').value = val;
+      } else if (key === 'red_img') {
+        document.getElementById('compare-a-modality').value = 'image';
+        updateCompareInputUI('a');
+        inputAFile = "sample_assets/red_square.png";
+        showMediaPreview('a', 'image', val);
+      } else if (key === 'bell_audio') {
+        document.getElementById('compare-a-modality').value = 'audio';
+        updateCompareInputUI('a');
+        inputAFile = "sample_assets/deep_bell.wav";
+        showMediaPreview('a', 'audio', val);
+      } else if (key === 'video_motion') {
+        document.getElementById('compare-a-modality').value = 'video';
+        updateCompareInputUI('a');
+        inputAFile = "sample_assets/motion_demo.mp4";
+        showMediaPreview('a', 'video', val);
+      }
+    }
+
+    function loadSampleB(key) {
+      const val = SAMPLES[key];
+      if (key === 'aurora_doc' || key === 'binary_search_code') {
+        document.getElementById('compare-b-modality').value = (key === 'binary_search_code' ? 'code' : 'text');
+        updateCompareInputUI('b');
+        document.getElementById('compare-b-text').value = val;
+      } else if (key === 'blue_img') {
+        document.getElementById('compare-b-modality').value = 'image';
+        updateCompareInputUI('b');
+        inputBFile = "sample_assets/ocean_blue.png";
+        showMediaPreview('b', 'image', val);
+      } else if (key === 'ocean_audio') {
+        document.getElementById('compare-b-modality').value = 'audio';
+        updateCompareInputUI('b');
+        inputBFile = "sample_assets/ocean_waves.wav";
+        showMediaPreview('b', 'audio', val);
+      } else if (key === 'video_motion') {
+        document.getElementById('compare-b-modality').value = 'video';
+        updateCompareInputUI('b');
+        inputBFile = "sample_assets/motion_demo.mp4";
+        showMediaPreview('b', 'video', val);
+      }
+    }
+
+    // Run Streamed Pairwise Compare
+    async function runPairwiseCompare() {
+      const modA = document.getElementById('compare-a-modality').value;
+      const modB = document.getElementById('compare-b-modality').value;
+
+      let contentA = (modA === 'text' || modA === 'code') ? document.getElementById('compare-a-text').value : inputAFile;
+      let contentB = (modB === 'text' || modB === 'code') ? document.getElementById('compare-b-text').value : inputBFile;
+
+      let promptA = (modA === 'text' || modA === 'code') ? document.getElementById('compare-a-prompt').value : null;
+      let promptB = (modB === 'text' || modB === 'code') ? document.getElementById('compare-b-prompt').value : null;
+
+      if (!contentA || !contentB) {
+        alert("Please provide both Input A and Input B!");
+        return;
+      }
+
+      // Show stream box
+      const streamBox = document.getElementById('compare-stream-box');
+      const progressBar = document.getElementById('compare-progress-bar');
+      const streamStatus = document.getElementById('compare-stream-status');
+      const streamPct = document.getElementById('compare-stream-pct');
+      const resultBox = document.getElementById('compare-result-box');
+
+      streamBox.classList.remove('hidden');
+      resultBox.classList.add('hidden');
+      progressBar.style.width = '10%';
+      streamPct.innerText = '10%';
+      streamStatus.innerText = 'Starting SSE Stream pipeline...';
+
+      const payload = {
+        mod_a: modA, content_a: contentA, prompt_a: promptA,
+        mod_b: modB, content_b: contentB, prompt_b: promptB
+      };
+
+      const response = await fetch('/api/stream/compare', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.substring(6));
+            if (data.event === 'status') {
+              streamStatus.innerText = data.msg;
+              progressBar.style.width = `${data.progress}%`;
+              streamPct.innerText = `${data.progress}%`;
+            } else if (data.event === 'done') {
+              progressBar.style.width = '100%';
+              streamPct.innerText = '100%';
+              renderCompareResults(data);
+            }
+          }
+        }
+      }
+    }
+
+    function renderCompareResults(data) {
+      document.getElementById('compare-result-box').classList.remove('hidden');
+      document.getElementById('res-score-number').innerText = data.similarity.toFixed(4);
+      document.getElementById('res-latency').innerText = `${data.elapsed_seconds}s`;
+
+      const score = data.similarity;
+      let text = "High Semantic Correspondence (Strong positive match)";
+      if (score < 0.3) text = "Low Semantic Relatedness (Unrelated / Distant concepts)";
+      else if (score < 0.6) text = "Moderate Topical Overlap";
+      document.getElementById('res-score-interpretation').innerText = text;
+
+      // Populate MRL Spectrum
+      const tbody = document.getElementById('mrl-table-body');
+      tbody.innerHTML = '';
+      data.mrl_spectrum.forEach(row => {
+        tbody.innerHTML += `
+          <tr class="hover:bg-slate-900/60 transition">
+            <td class="py-2.5 px-3 font-bold text-white">${row.dim}d</td>
+            <td class="py-2.5 px-3 text-cyan-400 font-bold">${row.storage_reduction}</td>
+            <td class="py-2.5 px-3 text-emerald-400 font-bold">${row.similarity.toFixed(4)}</td>
+            <td class="py-2.5 px-3">${row.retention_pct}%</td>
+            <td class="py-2.5 px-3">
+              <div class="w-32 bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-indigo-500 to-emerald-400 h-full" style="width: ${row.retention_pct}%"></div>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      lucide.createIcons();
+    }
+
+    // ==========================================
+    // MULTIMODAL SEARCH & RAG
+    // ==========================================
+    async function loadCorpus() {
+      const res = await fetch('/api/corpus');
+      const items = await res.json();
+      document.getElementById('search-results-count').innerText = `${items.length} items indexed`;
+      renderCorpusGrid(items);
+    }
+
+    function renderCorpusGrid(items, withScores = false) {
+      const grid = document.getElementById('search-results-grid');
+      grid.innerHTML = '';
+      items.forEach(item => {
+        let mediaHtml = '';
+        if (item.modality === 'image' && item.media_url) {
+          mediaHtml = `<img src="${item.media_url}" class="w-full h-24 object-cover rounded-lg border border-slate-800">`;
+        } else if (item.modality === 'audio' && item.media_url) {
+          mediaHtml = `<audio controls src="${item.media_url}" class="w-full h-8 mt-1"></audio>`;
+        } else if (item.modality === 'video' && item.media_url) {
+          mediaHtml = `<video controls src="${item.media_url}" class="w-full h-24 object-cover rounded-lg border border-slate-800"></video>`;
+        } else {
+          mediaHtml = `<div class="bg-slate-950 p-2 rounded-lg font-mono text-[11px] text-slate-300 h-24 overflow-hidden border border-slate-800/80 leading-relaxed">${item.content_preview}</div>`;
+        }
+
+        const scoreBadge = withScores ? `
+          <div class="flex items-center space-x-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-bold text-xs font-mono">
+            <span>${item.similarity.toFixed(4)}</span>
+          </div>
+        ` : '';
+
+        const badgeColor = {
+          text: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
+          code: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20',
+          image: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+          audio: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+          video: 'bg-pink-500/10 text-pink-400 border-pink-500/20'
+        }[item.modality] || 'bg-slate-800 text-slate-300 border-slate-700';
+
+        grid.innerHTML += `
+          <div class="glass-card rounded-xl p-3.5 border border-slate-800 flex flex-col justify-between space-y-2.5 hover:border-slate-700 transition">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${badgeColor}">${item.modality}</span>
+              ${scoreBadge}
+            </div>
+            <h4 class="text-xs font-semibold text-white truncate">${item.title}</h4>
+            ${mediaHtml}
+          </div>
+        `;
+      });
+      lucide.createIcons();
+    }
+
+    function setSearchQuery(text) {
+      document.getElementById('search-query-modality').value = 'text';
+      updateSearchQueryUI();
+      document.getElementById('search-query-text').value = text;
+    }
+
+    function updateSearchQueryUI() {
+      const mod = document.getElementById('search-query-modality').value;
+      const container = document.getElementById('search-query-container');
+      const preview = document.getElementById('search-query-media-preview');
+      preview.classList.add('hidden');
+      preview.innerHTML = '';
+
+      if (mod === 'text' || mod === 'code') {
+        container.innerHTML = `
+          <input type="text" id="search-query-text" value="Ocean waves and coastal nature" class="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-indigo-500" placeholder="Type a search query...">
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="border-2 border-dashed border-slate-800 hover:border-slate-700 rounded-xl p-3 text-center cursor-pointer transition" onclick="document.getElementById('file-search-query').click()">
+            <input type="file" id="file-search-query" class="hidden" onchange="handleSearchFileUpload(event, '${mod}')">
+            <span class="text-xs text-slate-300">Click to upload ${mod} query</span>
+          </div>
+        `;
+      }
+    }
+
+    async function handleSearchFileUpload(e, mod) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      searchQueryFile = data.saved_path;
+
+      const preview = document.getElementById('search-query-media-preview');
+      preview.classList.remove('hidden');
+      if (mod === 'image') preview.innerHTML = `<img src="${data.media_url}" class="h-20 rounded border border-slate-800">`;
+      else if (mod === 'audio') preview.innerHTML = `<audio controls src="${data.media_url}" class="w-full"></audio>`;
+      else if (mod === 'video') preview.innerHTML = `<video controls src="${data.media_url}" class="h-24 rounded border border-slate-800"></video>`;
+    }
+
+    async function runStreamSearch() {
+      const mod = document.getElementById('search-query-modality').value;
+      const dim = parseInt(document.getElementById('search-truncate-dim').value);
+      let content = (mod === 'text' || mod === 'code') ? document.getElementById('search-query-text').value : searchQueryFile;
+
+      if (!content) {
+        alert("Please provide a search query!");
+        return;
+      }
+
+      const streamBox = document.getElementById('search-stream-box');
+      const progressBar = document.getElementById('search-progress-bar');
+      const streamStatus = document.getElementById('search-stream-status');
+      const streamPct = document.getElementById('search-stream-pct');
+
+      streamBox.classList.remove('hidden');
+      progressBar.style.width = '10%';
+      streamPct.innerText = '10%';
+
+      const payload = {
+        query_modality: mod,
+        query_content: content,
+        query_prompt: (mod === 'code' ? 'CodeRetrieval' : 'SearchQuery'),
+        truncate_dim: dim
+      };
+
+      const res = await fetch('/api/stream/search', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.substring(6));
+            if (data.event === 'status') {
+              streamStatus.innerText = data.msg;
+              progressBar.style.width = `${data.progress}%`;
+              streamPct.innerText = `${data.progress}%`;
+            } else if (data.event === 'done') {
+              progressBar.style.width = '100%';
+              streamPct.innerText = '100%';
+              renderCorpusGrid(data.results, true);
+            }
+          }
+        }
+      }
+    }
+
+    async function resetCorpus() {
+      await fetch('/api/corpus/reset', { method: 'POST' });
+      loadCorpus();
+    }
+
+    function openAddCorpusModal() {
+      document.getElementById('modal-add-corpus').classList.remove('hidden');
+    }
+    function closeAddCorpusModal() {
+      document.getElementById('modal-add-corpus').classList.add('hidden');
+    }
+    function updateAddModalUI() {
+      const mod = document.getElementById('add-modality').value;
+      if (mod === 'text' || mod === 'code') {
+        document.getElementById('add-content-wrapper').classList.remove('hidden');
+        document.getElementById('add-file-wrapper').classList.add('hidden');
+      } else {
+        document.getElementById('add-content-wrapper').classList.add('hidden');
+        document.getElementById('add-file-wrapper').classList.remove('hidden');
+      }
+    }
+
+    async function submitAddCorpusItem() {
+      const title = document.getElementById('add-title').value;
+      const modality = document.getElementById('add-modality').value;
+      if (!title) { alert("Enter a title"); return; }
+
+      let content = "";
+      let mediaUrl = null;
+
+      if (modality === 'text' || modality === 'code') {
+        content = document.getElementById('add-content-text').value;
+      } else {
+        const file = document.getElementById('add-file').files[0];
+        if (!file) { alert("Please select a file"); return; }
+        const formData = new FormData();
+        formData.append('file', file);
+        const upRes = await fetch('/api/upload', { method: 'POST', body: formData });
+        const upData = await upRes.json();
+        content = upData.saved_path;
+        mediaUrl = upData.media_url;
+      }
+
+      await fetch('/api/corpus/add', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          title: title,
+          modality: modality,
+          content: content,
+          media_url: mediaUrl
+        })
+      });
+
+      closeAddCorpusModal();
+      loadCorpus();
+    }
+
+    // ==========================================
+    // VECTOR & INTERLEAVED STUDIO
+    // ==========================================
+    function updateEmbedInputUI() {
+      const mod = document.getElementById('embed-modality').value;
+      const container = document.getElementById('embed-input-container');
+      if (mod === 'text' || mod === 'code') {
+        container.innerHTML = `
+          <textarea id="embed-text-input" rows="4" class="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500" placeholder="Type text to embed...">Modern search and RAG applications require native multimodal comprehension.</textarea>
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Prompt Instruction</label>
+              <select id="embed-prompt" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-300">
+                <option value="${mod === 'code' ? 'CodeRetrieval' : 'SearchQuery'}">${mod === 'code' ? 'CodeRetrieval' : 'SearchQuery'}</option>
+                <option value="Document">Document</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Truncation (MRL)</label>
+              <select id="embed-dim" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-slate-300">
+                <option value="768">768d (Original)</option>
+                <option value="512">512d</option>
+                <option value="256">256d</option>
+                <option value="128">128d</option>
+              </select>
+            </div>
+          </div>
+        `;
+      } else if (mod === 'interleaved') {
+        container.innerHTML = `
+          <div class="space-y-3">
+            <label class="block text-xs text-slate-400">Interleaved Document with &lt;|image|&gt; and &lt;|video|&gt; tags</label>
+            <textarea id="embed-interleaved-text" rows="3" class="w-full bg-slate-900/90 border border-slate-800 rounded-xl p-3 text-sm text-slate-200" placeholder="Product specification <|image|> Demonstration clip: <|video|>">Product overview <|image|> Action footage: <|video|></textarea>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <button onclick="loadInterleavedPreset()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg">Load Preset Media Files</button>
+              <span id="interleaved-status" class="text-emerald-400 flex items-center">Sample assets attached</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    let interleavedPresetLoaded = true;
+    function loadInterleavedPreset() {
+      interleavedPresetLoaded = true;
+      document.getElementById('interleaved-status').innerText = "sample_assets/red_square.png + motion_demo.mp4 attached!";
+    }
+
+    async function runSingleEmbed() {
+      const mod = document.getElementById('embed-modality').value;
+      let content = null;
+      let promptName = "SearchQuery";
+      let truncateDim = 768;
+
+      if (mod === 'text' || mod === 'code') {
+        content = document.getElementById('embed-text-input').value;
+        promptName = document.getElementById('embed-prompt').value;
+        truncateDim = parseInt(document.getElementById('embed-dim').value);
+      } else if (mod === 'interleaved') {
+        content = {
+          text: document.getElementById('embed-interleaved-text').value,
+          image: "sample_assets/red_square.png",
+          video: "sample_assets/motion_demo.mp4"
+        };
+      }
+
+      const res = await fetch('/api/stream/embed', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          modality: mod,
+          content: content,
+          prompt_name: promptName,
+          truncate_dim: truncateDim
+        })
+      });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = JSON.parse(line.substring(6));
+            if (data.event === 'done') {
+              currentVector = data.vector;
+              document.getElementById('diag-dim').innerText = `${data.dim}d`;
+              document.getElementById('diag-norm').innerText = `${data.norm} (Unit Normalized)`;
+              document.getElementById('diag-latency').innerText = `${data.elapsed_seconds}s`;
+              document.getElementById('diag-slice').innerText = JSON.stringify(data.preview_slice);
+              document.getElementById('btn-download-vector').removeAttribute('disabled');
+            }
+          }
+        }
+      }
+    }
+
+    function downloadActiveVector() {
+      if (!currentVector) return;
+      const blob = new Blob([JSON.stringify({ dimension: currentVector.length, embedding: currentVector }, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `embeddinggemma2_${currentVector.length}d_vector.json`;
+      a.click();
+    }
+  </script>
+</body>
+</html>

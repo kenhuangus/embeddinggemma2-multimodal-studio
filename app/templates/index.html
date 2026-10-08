@@ -111,20 +111,24 @@
 
   <!-- Navigation Tabs -->
   <div class="border-b border-slate-800/80 bg-slate-900/40">
-    <div class="max-w-7xl mx-auto px-6 flex space-x-8 text-sm">
-      <button onclick="switchTab('compare')" id="tab-btn-compare" class="py-3.5 border-b-2 font-medium border-indigo-500 text-indigo-400 flex items-center space-x-2 transition">
+    <div class="max-w-7xl mx-auto px-6 flex space-x-6 sm:space-x-8 text-sm overflow-x-auto">
+      <button onclick="switchTab('chat')" id="tab-btn-chat" class="py-3.5 border-b-2 font-medium border-indigo-500 text-indigo-400 flex items-center space-x-2 transition whitespace-nowrap">
+        <i data-lucide="message-square" class="w-4 h-4"></i>
+        <span>Multimodal Chat & RAG</span>
+      </button>
+      <button onclick="switchTab('compare')" id="tab-btn-compare" class="py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition whitespace-nowrap">
         <i data-lucide="git-compare" class="w-4 h-4"></i>
         <span>Pairwise Matcher & MRL</span>
       </button>
-      <button onclick="switchTab('search')" id="tab-btn-search" class="py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition">
+      <button onclick="switchTab('search')" id="tab-btn-search" class="py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition whitespace-nowrap">
         <i data-lucide="search" class="w-4 h-4"></i>
-        <span>Multimodal Search & RAG</span>
+        <span>Corpus Search</span>
       </button>
-      <button onclick="switchTab('embed')" id="tab-btn-embed" class="py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition">
+      <button onclick="switchTab('embed')" id="tab-btn-embed" class="py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition whitespace-nowrap">
         <i data-lucide="binary" class="w-4 h-4"></i>
-        <span>Vector & Interleaved Studio</span>
+        <span>Vector Studio</span>
       </button>
-      <button onclick="switchTab('architecture')" id="tab-btn-architecture" class="py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition">
+      <button onclick="switchTab('architecture')" id="tab-btn-architecture" class="py-3.5 border-b-2 font-medium border-transparent text-slate-400 hover:text-slate-200 flex items-center space-x-2 transition whitespace-nowrap">
         <i data-lucide="info" class="w-4 h-4"></i>
         <span>Model Architecture</span>
       </button>
@@ -135,9 +139,146 @@
   <main class="flex-1 max-w-7xl w-full mx-auto p-6">
 
     <!-- ========================================== -->
+    <!-- TAB 0: MULTIMODAL ASSISTANT & CHAT -->
+    <!-- ========================================== -->
+    <section id="tab-chat" class="space-y-4">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-white flex items-center space-x-2">
+            <span>Multimodal Assistant & Chat</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Text • Audio • Video • PDF</span>
+          </h2>
+          <p class="text-sm text-slate-400">Conversational RAG assistant powered by EmbeddingGemma 2's 768d latent space. Chat with voice audio, upload PDFs, analyze videos, or type questions.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button onclick="clearChatHistory()" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs flex items-center space-x-1.5 transition">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Clear Chat</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Context Starter Chips -->
+      <div class="flex flex-wrap items-center gap-2 text-xs">
+        <span class="text-slate-500 font-medium">Quick Starters:</span>
+        <button onclick="loadSampleChatPrompt('pdf_spec')" class="px-2.5 py-1 rounded-lg bg-indigo-950/40 border border-indigo-800/40 hover:bg-indigo-900/60 text-indigo-300 flex items-center space-x-1.5 transition">
+          <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span>📄 Load Spec PDF</span>
+        </button>
+        <button onclick="loadSampleChatPrompt('voice_match')" class="px-2.5 py-1 rounded-lg bg-purple-950/40 border border-purple-800/40 hover:bg-purple-900/60 text-purple-300 flex items-center space-x-1.5 transition">
+          <i data-lucide="mic" class="w-3.5 h-3.5 text-purple-400"></i>
+          <span>🎙️ Test Audio Chat</span>
+        </button>
+        <button onclick="loadSampleChatPrompt('video_match')" class="px-2.5 py-1 rounded-lg bg-cyan-950/40 border border-cyan-800/40 hover:bg-cyan-900/60 text-cyan-300 flex items-center space-x-1.5 transition">
+          <i data-lucide="video" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>🎬 Analyze Video Clip</span>
+        </button>
+        <button onclick="loadSampleChatPrompt('mrl_question')" class="px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-800/40 hover:bg-emerald-900/60 text-emerald-300 flex items-center space-x-1.5 transition">
+          <i data-lucide="help-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Ask about MRL 128d</span>
+        </button>
+      </div>
+
+      <!-- Chat Feed Container -->
+      <div id="chat-messages" class="glass-card rounded-2xl p-5 border border-slate-800 h-[480px] overflow-y-auto space-y-4">
+        <!-- Initial Welcome Message -->
+        <div class="flex items-start space-x-3">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md">
+            EG
+          </div>
+          <div class="flex-1 bg-slate-900/80 border border-slate-800 rounded-2xl rounded-tl-none p-4 text-xs text-slate-200 space-y-2">
+            <div class="font-semibold text-sm text-white flex items-center justify-between">
+              <span>EmbeddingGemma 2 Multimodal Assistant</span>
+              <span class="text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Active • 768d</span>
+            </div>
+            <p>Welcome! I am equipped with Google's unified <strong>EmbeddingGemma 2</strong> model. You can seamlessly communicate and query knowledge across all four modalities:</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2">
+                <i data-lucide="message-square" class="w-4 h-4 text-indigo-400"></i>
+                <div>
+                  <div class="font-medium text-white text-[11px]">💬 Text & Code Chat</div>
+                  <div class="text-[10px] text-slate-400">Natural language questions & code search</div>
+                </div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2">
+                <i data-lucide="mic" class="w-4 h-4 text-purple-400"></i>
+                <div>
+                  <div class="font-medium text-white text-[11px]">🎙️ Audio Voice Chat</div>
+                  <div class="text-[10px] text-slate-400">Record mic audio or upload voice notes</div>
+                </div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2">
+                <i data-lucide="video" class="w-4 h-4 text-cyan-400"></i>
+                <div>
+                  <div class="font-medium text-white text-[11px]">🎬 Video Upload & Search</div>
+                  <div class="text-[10px] text-slate-400">PyAV keyframe extraction & semantic matching</div>
+                </div>
+              </div>
+              <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2">
+                <i data-lucide="file-text" class="w-4 h-4 text-emerald-400"></i>
+                <div>
+                  <div class="font-medium text-white text-[11px]">📄 PDF Document Ingestion</div>
+                  <div class="text-[10px] text-slate-400">Extract pages, index chunks & cite sources</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Media Attachment Chip -->
+      <div id="chat-attachment-bar" class="hidden flex items-center justify-between px-4 py-2 bg-slate-900/90 border border-indigo-500/40 rounded-xl text-xs">
+        <div class="flex items-center space-x-2 text-indigo-300" id="chat-attachment-info">
+          <!-- Dynamically populated -->
+        </div>
+        <button onclick="clearChatAttachment()" class="text-slate-400 hover:text-rose-400 transition" title="Remove attachment">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Composer Bar -->
+      <div class="glass-card rounded-2xl p-2.5 border border-slate-800 flex items-center space-x-2">
+        <!-- Input Area -->
+        <input type="text" id="chat-input" class="flex-1 bg-transparent border-0 text-sm text-slate-100 placeholder-slate-500 focus:outline-none px-3 py-2 font-normal" placeholder="Type a message, ask about an uploaded PDF, or record audio... (Enter to send)" onkeydown="handleChatKeyDown(event)">
+
+        <!-- Media Upload Controls -->
+        <div class="flex items-center space-x-1">
+          <!-- PDF Upload -->
+          <button onclick="document.getElementById('chat-pdf-file').click()" class="p-2 text-slate-400 hover:text-indigo-400 hover:bg-slate-800 rounded-lg transition" title="Upload PDF Document">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+          </button>
+          <input type="file" id="chat-pdf-file" accept=".pdf" class="hidden" onchange="handleChatMediaUpload(event, 'pdf')">
+
+          <!-- Video Upload -->
+          <button onclick="document.getElementById('chat-video-file').click()" class="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 rounded-lg transition" title="Upload Video (MP4, WebM)">
+            <i data-lucide="video" class="w-4 h-4"></i>
+          </button>
+          <input type="file" id="chat-video-file" accept=".mp4,.mov,.webm" class="hidden" onchange="handleChatMediaUpload(event, 'video')">
+
+          <!-- Audio Upload -->
+          <button onclick="document.getElementById('chat-audio-file').click()" class="p-2 text-slate-400 hover:text-purple-400 hover:bg-slate-800 rounded-lg transition" title="Upload Audio File (WAV, MP3)">
+            <i data-lucide="music" class="w-4 h-4"></i>
+          </button>
+          <input type="file" id="chat-audio-file" accept=".wav,.mp3" class="hidden" onchange="handleChatMediaUpload(event, 'audio')">
+
+          <!-- Live Voice Recorder -->
+          <button id="btn-record-voice" onclick="toggleVoiceRecording()" class="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition flex items-center space-x-1" title="Record Voice / Audio Note">
+            <i data-lucide="mic" class="w-4 h-4"></i>
+            <span id="voice-record-timer" class="hidden text-[10px] text-rose-400 font-mono font-bold">REC</span>
+          </button>
+
+          <!-- Send Button -->
+          <button id="btn-send-chat" onclick="submitChatMessage()" class="p-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-indigo-600/25 transition">
+            <i data-lucide="send" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
     <!-- TAB 1: PAIRWISE MATCHER & MRL INSPECTOR -->
     <!-- ========================================== -->
-    <section id="tab-compare" class="space-y-6">
+    <section id="tab-compare" class="hidden space-y-6">
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 class="text-xl font-bold text-white flex items-center space-x-2">
@@ -690,11 +831,17 @@
   <!-- JavaScript Client Application -->
   <script>
     // State
-    let activeTab = 'compare';
+    let activeTab = 'chat';
     let currentVector = null;
     let inputAFile = null;
     let inputBFile = null;
     let searchQueryFile = null;
+    let currentChatAttachment = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let isRecordingVoice = false;
+    let recordTimerInterval = null;
+    let recordSeconds = 0;
 
     // Presets
     const SAMPLES = {
@@ -718,7 +865,7 @@
 
     function switchTab(tabId) {
       activeTab = tabId;
-      ['compare', 'search', 'embed', 'architecture'].forEach(t => {
+      ['chat', 'compare', 'search', 'embed', 'architecture'].forEach(t => {
         const section = document.getElementById(`tab-${t}`);
         const btn = document.getElementById(`tab-btn-${t}`);
         if (t === tabId) {
@@ -1292,6 +1439,357 @@
       a.href = url;
       a.download = `embeddinggemma2_${currentVector.length}d_vector.json`;
       a.click();
+    }
+
+    // ==========================================
+    // MULTIMODAL ASSISTANT & CHAT ENGINE
+    // ==========================================
+
+    function clearChatHistory() {
+      const container = document.getElementById('chat-messages');
+      container.innerHTML = `
+        <div class="flex items-start space-x-3">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md">
+            EG
+          </div>
+          <div class="flex-1 bg-slate-900/80 border border-slate-800 rounded-2xl rounded-tl-none p-4 text-xs text-slate-200 space-y-1">
+            <span class="font-semibold text-white">Chat cleared.</span> You can ask questions, upload PDFs, record voice audio, or analyze videos.
+          </div>
+        </div>
+      `;
+      clearChatAttachment();
+    }
+
+    function clearChatAttachment() {
+      currentChatAttachment = null;
+      document.getElementById('chat-attachment-bar').classList.add('hidden');
+      document.getElementById('chat-attachment-info').innerHTML = '';
+    }
+
+    function handleChatKeyDown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitChatMessage();
+      }
+    }
+
+    function loadSampleChatPrompt(key) {
+      const input = document.getElementById('chat-input');
+      if (key === 'pdf_spec') {
+        currentChatAttachment = {
+          modality: 'pdf',
+          path: 'sample_assets/embeddinggemma_technical_report.pdf',
+          url: '/sample_assets/embeddinggemma_technical_report.pdf',
+          filename: 'embeddinggemma_technical_report.pdf'
+        };
+        showChatAttachmentBadge('📄 PDF: embeddinggemma_technical_report.pdf');
+        input.value = "What does the technical report explain about Matryoshka Representation Learning (MRL) truncation?";
+      } else if (key === 'voice_match') {
+        currentChatAttachment = {
+          modality: 'audio',
+          path: 'sample_assets/ocean_waves.wav',
+          url: '/sample_assets/ocean_waves.wav',
+          filename: 'ocean_waves.wav'
+        };
+        showChatAttachmentBadge('🎙️ Audio Clip: ocean_waves.wav (16 kHz Mono)');
+        input.value = "What visual scenery or documents in the database correlate with this audio waveform?";
+      } else if (key === 'video_match') {
+        currentChatAttachment = {
+          modality: 'video',
+          path: 'sample_assets/motion_demo.mp4',
+          url: '/sample_assets/motion_demo.mp4',
+          filename: 'motion_demo.mp4'
+        };
+        showChatAttachmentBadge('🎬 Video Clip: motion_demo.mp4');
+        input.value = "Analyze the motion dynamics in this video clip and identify related algorithmic concepts.";
+      } else if (key === 'mrl_question') {
+        clearChatAttachment();
+        input.value = "How does Matryoshka Representation Learning achieve 6x storage compression at 128d while retaining semantic accuracy?";
+      }
+      input.focus();
+    }
+
+    function showChatAttachmentBadge(label) {
+      const bar = document.getElementById('chat-attachment-bar');
+      const info = document.getElementById('chat-attachment-info');
+      info.innerHTML = `<span>${label}</span>`;
+      bar.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    async function handleChatMediaUpload(e, modality) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        if (modality === 'pdf') {
+          showChatAttachmentBadge(`Parsing & indexing ${file.name}...`);
+          const res = await fetch('/api/upload/pdf', { method: 'POST', body: formData });
+          const data = await res.json();
+          currentChatAttachment = {
+            modality: 'pdf',
+            path: data.saved_path,
+            url: data.media_url,
+            filename: file.name,
+            num_chunks: data.num_chunks
+          };
+          showChatAttachmentBadge(`📄 Indexed PDF: ${file.name} (${data.num_chunks} chunks)`);
+          document.getElementById('chat-input').placeholder = `Ask anything about ${file.name}...`;
+        } else {
+          const res = await fetch('/api/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          currentChatAttachment = {
+            modality: modality,
+            path: data.saved_path,
+            url: data.media_url,
+            filename: file.name
+          };
+          const icon = modality === 'video' ? '🎬' : modality === 'audio' ? '🎵' : '🖼️';
+          showChatAttachmentBadge(`${icon} ${modality.toUpperCase()}: ${file.name}`);
+        }
+      } catch (err) {
+        alert("Upload failed: " + err);
+      }
+    }
+
+    async function toggleVoiceRecording() {
+      const btn = document.getElementById('btn-record-voice');
+      const timer = document.getElementById('voice-record-timer');
+
+      if (!isRecordingVoice) {
+        // Start recording
+        try {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("Microphone API not supported in this browser context");
+          }
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          audioChunks = [];
+          mediaRecorder = new MediaRecorder(stream);
+          mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const formData = new FormData();
+            formData.append('file', audioBlob, 'mic_recording.wav');
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            const data = await res.json();
+            currentChatAttachment = {
+              modality: 'audio',
+              path: data.saved_path,
+              url: data.media_url,
+              filename: `Voice Note (${recordSeconds}s)`
+            };
+            showChatAttachmentBadge(`🎙️ Recorded Voice Note (${recordSeconds}s)`);
+          };
+          mediaRecorder.start();
+          isRecordingVoice = true;
+          recordSeconds = 0;
+          timer.classList.remove('hidden');
+          timer.innerText = "00:00";
+          recordTimerInterval = setInterval(() => {
+            recordSeconds++;
+            const secStr = recordSeconds < 10 ? `0${recordSeconds}` : recordSeconds;
+            timer.innerText = `00:${secStr}`;
+          }, 1000);
+          btn.classList.add('bg-rose-500/20', 'text-rose-400');
+        } catch (err) {
+          // Graceful fallback for environments without physical mic access
+          console.warn("Microphone not available, falling back to bundled voice sample:", err);
+          currentChatAttachment = {
+            modality: 'audio',
+            path: 'sample_assets/deep_bell.wav',
+            url: '/sample_assets/deep_bell.wav',
+            filename: 'Sample Voice / Audio Note (16 kHz Mono)'
+          };
+          showChatAttachmentBadge('🎙️ Sample Audio Note (deep_bell.wav)');
+        }
+      } else {
+        // Stop recording
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+          mediaRecorder.stop();
+        }
+        clearInterval(recordTimerInterval);
+        isRecordingVoice = false;
+        timer.classList.add('hidden');
+        btn.classList.remove('bg-rose-500/20', 'text-rose-400');
+      }
+    }
+
+    async function submitChatMessage() {
+      const input = document.getElementById('chat-input');
+      const text = input.value.trim();
+      const attach = currentChatAttachment;
+
+      if (!text && !attach) return;
+
+      const container = document.getElementById('chat-messages');
+
+      // 1. Render User Message
+      const userBubble = document.createElement('div');
+      userBubble.className = "flex items-start justify-end space-x-3";
+      
+      let attachHTML = '';
+      if (attach) {
+        if (attach.modality === 'audio') {
+          attachHTML = `<div class="mt-2 p-2 bg-slate-950/60 rounded-xl border border-slate-800"><audio controls src="${attach.url}" class="w-full h-8"></audio></div>`;
+        } else if (attach.modality === 'video') {
+          attachHTML = `<div class="mt-2"><video controls src="${attach.url}" class="w-64 h-36 object-cover rounded-xl border border-slate-800"></video></div>`;
+        } else if (attach.modality === 'pdf') {
+          attachHTML = `<div class="mt-2 inline-flex items-center space-x-2 px-3 py-1.5 bg-slate-950/60 border border-indigo-500/30 rounded-lg text-indigo-300 text-[11px]"><i data-lucide="file-text" class="w-4 h-4"></i><span>${attach.filename}</span></div>`;
+        } else if (attach.modality === 'image') {
+          attachHTML = `<div class="mt-2"><img src="${attach.url}" class="w-48 h-32 object-cover rounded-xl border border-slate-800"></div>`;
+        }
+      }
+
+      userBubble.innerHTML = `
+        <div class="max-w-xl bg-indigo-600/20 border border-indigo-500/30 rounded-2xl rounded-tr-none p-3.5 text-xs text-white">
+          ${text ? `<div>${text}</div>` : ''}
+          ${attachHTML}
+        </div>
+        <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md">
+          U
+        </div>
+      `;
+      container.appendChild(userBubble);
+
+      // Reset composer & attachment
+      input.value = '';
+      clearChatAttachment();
+
+      // 2. Render Assistant Placeholder Bubble
+      const botMsgId = `bot-msg-${Date.now()}`;
+      const botBubble = document.createElement('div');
+      botBubble.className = "flex items-start space-x-3";
+      botBubble.innerHTML = `
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md">
+          EG
+        </div>
+        <div class="flex-1 max-w-2xl bg-slate-900/90 border border-slate-800 rounded-2xl rounded-tl-none p-4 text-xs text-slate-200 space-y-3">
+          <!-- Status Banner -->
+          <div id="${botMsgId}-status-box" class="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800/80">
+            <span id="${botMsgId}-status" class="flex items-center space-x-2 text-indigo-400">
+              <span class="w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
+              <span>EmbeddingGemma 2 processing...</span>
+            </span>
+            <span id="${botMsgId}-pct" class="font-mono text-indigo-400">10%</span>
+          </div>
+
+          <!-- Progress Line -->
+          <div class="w-full bg-slate-950 rounded-full h-1 overflow-hidden">
+            <div id="${botMsgId}-progress" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 h-full w-[10%] transition-all duration-150"></div>
+          </div>
+
+          <!-- Retrieved Sources Accordion Container -->
+          <div id="${botMsgId}-sources" class="hidden space-y-1.5 pt-1">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Retrieved Semantic Evidence</div>
+            <div id="${botMsgId}-sources-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+          </div>
+
+          <!-- Streaming Text Area -->
+          <div id="${botMsgId}-content" class="leading-relaxed text-slate-200 whitespace-pre-line font-normal"></div>
+
+          <!-- Action Footer -->
+          <div id="${botMsgId}-actions" class="hidden flex items-center justify-end space-x-2 pt-2 border-t border-slate-800/80 text-[11px]">
+            <button onclick="speakText('${botMsgId}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center space-x-1 transition">
+              <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+              <span>Speak Response</span>
+            </button>
+          </div>
+        </div>
+      `;
+      container.appendChild(botBubble);
+      container.scrollTop = container.scrollHeight;
+      lucide.createIcons();
+
+      // 3. Initiate SSE Streaming Request
+      const payload = {
+        message: text,
+        modality: attach ? attach.modality : 'text',
+        media_path: attach ? attach.path : null,
+        media_url: attach ? attach.url : null,
+        filename: attach ? attach.filename : null,
+        truncate_dim: 768
+      };
+
+      try {
+        const response = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload)
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let fullAnswer = "";
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const data = JSON.parse(line.substring(6));
+
+              if (data.event === 'status') {
+                const sEl = document.getElementById(`${botMsgId}-status`);
+                const pEl = document.getElementById(`${botMsgId}-pct`);
+                const barEl = document.getElementById(`${botMsgId}-progress`);
+                if (sEl) sEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse mr-1"></span><span>${data.msg}</span>`;
+                if (pEl) pEl.innerText = `${data.progress}%`;
+                if (barEl) barEl.style.width = `${data.progress}%`;
+              } else if (data.event === 'retrieval') {
+                const srcBox = document.getElementById(`${botMsgId}-sources`);
+                const srcList = document.getElementById(`${botMsgId}-sources-list`);
+                if (srcBox && srcList) {
+                  srcBox.classList.remove('hidden');
+                  srcList.innerHTML = (data.sources || []).map(s => `
+                    <div class="p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-[10px] space-y-1">
+                      <div class="flex items-center justify-between">
+                        <span class="font-semibold text-white truncate max-w-[130px]">${s.title}</span>
+                        <span class="text-emerald-400 font-mono">${(s.similarity * 100).toFixed(1)}%</span>
+                      </div>
+                      <span class="inline-block px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400 uppercase font-bold">${s.modality}</span>
+                    </div>
+                  `).join('');
+                }
+              } else if (data.event === 'token') {
+                fullAnswer += data.chunk;
+                const cEl = document.getElementById(`${botMsgId}-content`);
+                if (cEl) cEl.innerText = fullAnswer;
+                container.scrollTop = container.scrollHeight;
+              } else if (data.event === 'done') {
+                const pEl = document.getElementById(`${botMsgId}-pct`);
+                const barEl = document.getElementById(`${botMsgId}-progress`);
+                const sEl = document.getElementById(`${botMsgId}-status`);
+                const actEl = document.getElementById(`${botMsgId}-actions`);
+                if (pEl) pEl.innerText = "100%";
+                if (barEl) barEl.style.width = "100%";
+                if (sEl) sEl.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 mr-1"></i><span class="text-emerald-400">Synthesized in ${data.elapsed}s</span>`;
+                if (actEl) actEl.classList.remove('hidden');
+                lucide.createIcons();
+                container.scrollTop = container.scrollHeight;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        const cEl = document.getElementById(`${botMsgId}-content`);
+        if (cEl) cEl.innerText = "Error in stream response: " + err;
+      }
+    }
+
+    function speakText(msgId) {
+      const cEl = document.getElementById(`${msgId}-content`);
+      if (!cEl || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(cEl.innerText);
+      utter.rate = 1.05;
+      utter.pitch = 1.0;
+      window.speechSynthesis.speak(utter);
     }
   </script>
 </body>

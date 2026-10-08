@@ -1,4 +1,5 @@
 import os
+import time
 import shutil
 import uuid
 import json
@@ -326,3 +327,266 @@ async def add_corpus_item(req: AddCorpusItemRequest):
 async def reset_corpus():
     initialize_default_corpus()
     return {"status": "success", "total_items": len(corpus_items)}
+
+# ====================================================================
+# PDF Ingestion & Multimodal Chat Stream Support
+# ====================================================================
+
+def extract_pdf_chunks(pdf_path: str) -> List[Dict[str, Any]]:
+    try:
+        import pypdf
+        reader = pypdf.PdfReader(pdf_path)
+        chunks = []
+        for page_idx, page in enumerate(reader.pages):
+            text = page.extract_text() or ""
+            text = text.strip()
+            if not text:
+                continue
+            # Split into paragraphs
+            paras = [p.strip() for p in text.split("\n\n") if len(p.strip()) > 20]
+            if not paras:
+                paras = [text]
+            for para_idx, para in enumerate(paras):
+                chunks.append({
+                    "page": page_idx + 1,
+                    "chunk_index": para_idx + 1,
+                    "text": para
+                })
+        return chunks
+    except Exception as e:
+        print("PDF extraction error:", e)
+        return []
+
+@app.post("/api/upload/pdf")
+async def upload_pdf_file(file: UploadFile = File(...)):
+    ext = os.path.splitext(file.filename)[1].lower()
+    if ext != ".pdf":
+        raise HTTPException(status_code=400, detail="Only .pdf files are supported")
+    
+    unique_name = f"{uuid.uuid4().hex[:10]}.pdf"
+    dest_path = os.path.join(UPLOADS_DIR, unique_name)
+    with open(dest_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    chunks = extract_pdf_chunks(dest_path)
+    if not chunks:
+        # Fallback single chunk
+        chunks = [{"page": 1, "chunk_index": 1, "text": f"Document: {file.filename}"}]
+
+    loop = asyncio.get_event_loop()
+    indexed_entries = []
+    
+    for c in chunks:
+        vec = await loop.run_in_executor(
+            None,
+            engine.encode_single,
+            "text",
+            c["text"],
+            "Document",
+            768
+        )
+        item_id = f"pdf-{uuid.uuid4().hex[:6]}"
+        item_entry = {
+            "id": item_id,
+            "title": f"{file.filename} (Page {c['page']})",
+            "modality": "pdf",
+            "content": c["text"],
+            "media_url": f"/uploads/{unique_name}",
+            "prompt_name": "Document",
+            "full_vector": vec,
+            "vector": vec,
+            "page": c["page"],
+            "source_filename": file.filename
+        }
+        corpus_items.append(item_entry)
+        indexed_entries.append({
+            "id": item_id,
+            "page": c["page"],
+            "preview": (c["text"][:100] + "...") if len(c["text"]) > 100 else c["text"]
+        })
+        
+    return {
+        "status": "success",
+        "filename": file.filename,
+        "saved_path": dest_path,
+        "media_url": f"/uploads/{unique_name}",
+        "num_chunks": len(chunks),
+        "indexed_entries": indexed_entries,
+        "total_corpus_items": len(corpus_items)
+    }
+
+class ChatStreamRequest(BaseModel):
+    message: Optional[str] = ""
+    modality: Optional[str] = "text" # "text", "audio", "video", "image", "pdf"
+    media_path: Optional[str] = None
+    media_url: Optional[str] = None
+    filename: Optional[str] = None
+    history: Optional[List[Dict[str, str]]] = []
+    truncate_dim: Optional[int] = 768
+
+@app.post("/api/chat/stream")
+async def stream_chat(req: ChatStreamRequest):
+    async def chat_generator():
+        t0 = time.time()
+        mod = (req.modality or "text").lower()
+        loop = asyncio.get_event_loop()
+        
+        # 1. Pipeline Status
+        if mod == "audio":
+            yield f"data: {json.dumps({'event': 'status', 'msg': 'Encoding voice waveform with EmbeddingGemma 2 Audio Tower...', 'progress': 20})}\n\n"
+        elif mod == "video":
+            yield f"data: {json.dumps({'event': 'status', 'msg': 'Extracting video keyframes via PyAV & projecting to 768d space...', 'progress': 20})}\n\n"
+        elif mod == "image":
+            yield f"data: {json.dumps({'event': 'status', 'msg': 'Encoding image visual features into unified latent space...', 'progress': 20})}\n\n"
+        elif mod == "pdf":
+            yield f"data: {json.dumps({'event': 'status', 'msg': 'Parsing PDF document and extracting semantic knowledge...', 'progress': 20})}\n\n"
+        else:
+            yield f"data: {json.dumps({'event': 'status', 'msg': 'Encoding user query with task: SearchQuery prefix...', 'progress': 20})}\n\n"
+        
+        await asyncio.sleep(0.04)
+
+        # 2. Encode query according to modality
+        q_vec = None
+        query_label = req.message or ""
+        
+        if mod == "audio" and req.media_path and os.path.exists(req.media_path):
+            q_vec = await loop.run_in_executor(
+                None, engine.encode_single, "audio", req.media_path, None, req.truncate_dim
+            )
+            query_label = f"Voice / Audio Note ({os.path.basename(req.media_path)})"
+        elif mod == "video" and req.media_path and os.path.exists(req.media_path):
+            q_vec = await loop.run_in_executor(
+                None, engine.encode_single, "video", req.media_path, None, req.truncate_dim
+            )
+            query_label = f"Video Recording ({os.path.basename(req.media_path)})"
+        elif mod == "image" and req.media_path and os.path.exists(req.media_path):
+            q_vec = await loop.run_in_executor(
+                None, engine.encode_single, "image", req.media_path, None, req.truncate_dim
+            )
+            query_label = f"Image Attachment ({os.path.basename(req.media_path)})"
+        elif mod == "pdf" and req.media_path and os.path.exists(req.media_path):
+            # Index PDF if not already indexed
+            chunks = extract_pdf_chunks(req.media_path)
+            for c in chunks:
+                vec = await loop.run_in_executor(
+                    None, engine.encode_single, "text", c["text"], "Document", req.truncate_dim
+                )
+                corpus_items.append({
+                    "id": f"pdf-{uuid.uuid4().hex[:6]}",
+                    "title": f"{req.filename or 'Document'} (Page {c['page']})",
+                    "modality": "pdf",
+                    "content": c["text"],
+                    "media_url": req.media_url,
+                    "prompt_name": "Document",
+                    "full_vector": vec,
+                    "vector": vec,
+                    "page": c["page"]
+                })
+            query_text = req.message.strip() if req.message and req.message.strip() else f"Summary and analysis of {req.filename or 'uploaded document'}"
+            q_vec = await loop.run_in_executor(
+                None, engine.encode_single, "text", query_text, "SearchQuery", req.truncate_dim
+            )
+            query_label = f"PDF Document: {req.filename or 'Uploaded File'}"
+        else:
+            query_text = req.message.strip() if req.message and req.message.strip() else "Overview of EmbeddingGemma 2 capabilities"
+            q_vec = await loop.run_in_executor(
+                None, engine.encode_single, "text", query_text, "SearchQuery", req.truncate_dim
+            )
+            query_label = query_text
+
+        # 3. Retrieval against Corpus
+        yield f"data: {json.dumps({'event': 'status', 'msg': f'Scanning {len(corpus_items)} multimodal index entries across text, code, audio, video & PDFs...', 'progress': 55})}\n\n"
+        await asyncio.sleep(0.04)
+
+        ranked = []
+        for item in corpus_items:
+            if item.get("full_vector") is not None:
+                item_vec = item["full_vector"][:req.truncate_dim]
+            elif item.get("vector") is not None and len(item["vector"]) == req.truncate_dim:
+                item_vec = item["vector"]
+            else:
+                item_vec = await loop.run_in_executor(
+                    None,
+                    engine.encode_single,
+                    item["modality"] if item["modality"] != "pdf" else "text",
+                    item["content"],
+                    item.get("prompt_name") or "Document",
+                    req.truncate_dim
+                )
+                if req.truncate_dim == 768:
+                    item["full_vector"] = item_vec
+                item["vector"] = item_vec
+            
+            sim = engine.compute_similarity(q_vec, item_vec)
+            ranked.append({
+                "id": item["id"],
+                "title": item["title"],
+                "modality": item["modality"],
+                "content": item["content"],
+                "media_url": item.get("media_url"),
+                "similarity": round(sim, 4),
+                "similarity_pct": round(max(0.0, sim) * 100, 1)
+            })
+
+        ranked.sort(key=lambda x: x["similarity"], reverse=True)
+        top_sources = ranked[:3]
+
+        yield f"data: {json.dumps({'event': 'retrieval', 'sources': top_sources, 'progress': 75})}\n\n"
+        await asyncio.sleep(0.05)
+
+        # 4. Synthesize Coherent Multimodal Response
+        yield f"data: {json.dumps({'event': 'status', 'msg': 'Synthesizing multimodal assistant response...', 'progress': 85})}\n\n"
+        
+        # Build synthesis text
+        response_paragraphs = []
+        best = top_sources[0] if top_sources else None
+        
+        if mod == "audio":
+            response_paragraphs.append(
+                f"I processed your audio input through the dedicated **EmbeddingGemma 2 Audio Tower** (16 kHz mono waveform). "
+                f"The audio vector maps into the shared 768d latent space and demonstrated highest semantic affinity with **{best['title']}** (similarity: `{best['similarity']:.4f}`)."
+            )
+        elif mod == "video":
+            response_paragraphs.append(
+                f"I extracted keyframes from your video using PyAV and projected them through the SigLIP vision encoder into the 768-dimensional manifold. "
+                f"Your video most strongly correlates with **{best['title']}** (similarity: `{best['similarity']:.4f}`)."
+            )
+        elif mod == "pdf":
+            response_paragraphs.append(
+                f"I analyzed and indexed your PDF document (**{req.filename or 'Uploaded File'}**). "
+                f"The highest matching section is **{best['title']}** with a confidence score of `{best['similarity']:.4f}`."
+            )
+        else:
+            response_paragraphs.append(
+                f"Based on your query **\"{query_label}\"**, EmbeddingGemma 2 performed an asymmetric cosine search (`task: SearchQuery` vs `task: Document`) across our multimodal corpus. "
+                f"The top semantic match is **{best['title']}** with a score of `{best['similarity']:.4f}`."
+            )
+
+        if best:
+            preview_clean = best['content'].replace('\n', ' ')[:220]
+            response_paragraphs.append(
+                f"**Primary Evidence Citation:**\n> \"{preview_clean}...\""
+            )
+
+        if len(top_sources) > 1:
+            secondary = top_sources[1]
+            response_paragraphs.append(
+                f"Additionally, relevant secondary context was retrieved from **{secondary['title']}** (`{secondary['modality'].upper()}`, similarity: `{secondary['similarity']:.4f}`)."
+            )
+
+        full_reply = "\n\n".join(response_paragraphs)
+
+        # Stream words smoothly
+        words = full_reply.split(" ")
+        chunk_size = 3
+        for i in range(0, len(words), chunk_size):
+            chunk = " ".join(words[i:i+chunk_size]) + " "
+            yield f"data: {json.dumps({'event': 'token', 'chunk': chunk})}\n\n"
+            await asyncio.sleep(0.03)
+
+        # Done event
+        elapsed = round(time.time() - t0, 3)
+        yield f"data: {json.dumps({'event': 'done', 'reply': full_reply, 'sources': top_sources, 'elapsed': elapsed})}\n\n"
+
+    return StreamingResponse(chat_generator(), media_type="text/event-stream")
+

@@ -1,0 +1,12 @@
+{
+  "screenshots/chat_01_text_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/c11b4b5a-7174-4736-9bc2-a893f7abd105_1848x1335.png",
+  "screenshots/chat_02_audio_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/423569cf-2f92-4e83-b21f-18a45d422c9e_1848x1311.png",
+  "screenshots/chat_03_video_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/7bc0c508-3570-4ae4-91ea-6a22b3556e26_1848x1452.png",
+  "screenshots/chat_04_pdf_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/1a629390-9143-45a7-904b-e5ed4079c2c3_1848x1334.png",
+  "screenshots/01_pairwise_matcher_mrl.png": "https://substack-post-media.s3.amazonaws.com/public/images/95fab919-bacf-48e9-aa96-d4661379cc7a_1440x960.png",
+  "screenshots/02_crossmodal_vision_match.png": "https://substack-post-media.s3.amazonaws.com/public/images/907a6c12-fae6-4997-8fde-f24487c3bf0d_1440x960.png",
+  "screenshots/03_multimodal_search_rag.png": "https://substack-post-media.s3.amazonaws.com/public/images/fdca6b27-53cb-4d24-a153-8358443cd84d_1440x960.png",
+  "screenshots/04_vector_studio.png": "https://substack-post-media.s3.amazonaws.com/public/images/c7584937-95bb-4345-8be3-908b611324bb_1440x960.png",
+  "screenshots/05_architecture_matrix.png": "https://substack-post-media.s3.amazonaws.com/public/images/dcb5ca7f-7014-443c-9cbf-3368c11228b4_1440x960.png",
+  "screenshots/06_modular_switcher_modal.png": "https://substack-post-media.s3.amazonaws.com/public/images/2dc67fe8-50a9-40a8-ba66-7d05e53f795e_1440x960.png"
+}

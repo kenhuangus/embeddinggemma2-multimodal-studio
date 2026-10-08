@@ -1,12 +1,15 @@
 {
-  "screenshots/chat_01_text_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/c11b4b5a-7174-4736-9bc2-a893f7abd105_1848x1335.png",
-  "screenshots/chat_02_audio_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/423569cf-2f92-4e83-b21f-18a45d422c9e_1848x1311.png",
-  "screenshots/chat_03_video_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/7bc0c508-3570-4ae4-91ea-6a22b3556e26_1848x1452.png",
-  "screenshots/chat_04_pdf_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/1a629390-9143-45a7-904b-e5ed4079c2c3_1848x1334.png",
+  "screenshots/chat_01_text_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/45ba4116-7351-4fe4-bfe5-f5adfaa571e2_1848x1649.png",
+  "screenshots/chat_02_audio_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/204d7270-001f-40a6-8490-b0c6cbb7b2b2_1848x900.png",
+  "screenshots/chat_03_video_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/e6138bd1-afe1-4d7e-88e6-708f34764da9_1848x1011.png",
+  "screenshots/chat_04_pdf_panel.png": "https://substack-post-media.s3.amazonaws.com/public/images/b17da0fc-9278-46e2-9599-3de82ebe1b08_1848x840.png",
   "screenshots/01_pairwise_matcher_mrl.png": "https://substack-post-media.s3.amazonaws.com/public/images/95fab919-bacf-48e9-aa96-d4661379cc7a_1440x960.png",
   "screenshots/02_crossmodal_vision_match.png": "https://substack-post-media.s3.amazonaws.com/public/images/907a6c12-fae6-4997-8fde-f24487c3bf0d_1440x960.png",
   "screenshots/03_multimodal_search_rag.png": "https://substack-post-media.s3.amazonaws.com/public/images/fdca6b27-53cb-4d24-a153-8358443cd84d_1440x960.png",
   "screenshots/04_vector_studio.png": "https://substack-post-media.s3.amazonaws.com/public/images/c7584937-95bb-4345-8be3-908b611324bb_1440x960.png",
   "screenshots/05_architecture_matrix.png": "https://substack-post-media.s3.amazonaws.com/public/images/dcb5ca7f-7014-443c-9cbf-3368c11228b4_1440x960.png",
-  "screenshots/06_modular_switcher_modal.png": "https://substack-post-media.s3.amazonaws.com/public/images/2dc67fe8-50a9-40a8-ba66-7d05e53f795e_1440x960.png"
+  "screenshots/06_modular_switcher_modal.png": "https://substack-post-media.s3.amazonaws.com/public/images/2dc67fe8-50a9-40a8-ba66-7d05e53f795e_1440x960.png",
+  "screenshots/direct_chat_turn_01_mrl.png": "https://substack-post-media.s3.amazonaws.com/public/images/3fb77d2a-a5d2-46b1-ba8e-32d28631250e_1848x1649.png",
+  "screenshots/direct_chat_turn_02_python.png": "https://substack-post-media.s3.amazonaws.com/public/images/cb8f29b7-1b25-4abd-8c16-ab7147f81640_1848x3183.png",
+  "screenshots/direct_chat_turn_03_tradeoffs.png": "https://substack-post-media.s3.amazonaws.com/public/images/6baa4b9d-3fd5-4acf-ab75-b20abb9631f9_1848x4920.png"
 }

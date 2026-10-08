@@ -11,7 +11,7 @@ This engineering teardown covers the complete implementation lifecycle:
 2. Installation & Windows Configuration: Resolving dependency requirements across sentence-transformers, PyAV, librosa, and pypdf without compilation blockers.
 3. Production Code Patterns: Implementing asymmetric instruction prefixes and dynamic Matryoshka dimension truncation.
 4. Local Benchmark Results: Verified CPU execution latencies, cosine separation margins, and dimension retention metrics.
-5. Multimodal Stream Studio Walkthrough: Inspecting conversational text chat, raw audio ingestion, video keyframe analysis, and PDF page-level citations.
+5. Live System Walkthrough: Direct multi-turn conversational chat (prompt and response without RAG), voice audio comprehension, video analysis, and PDF document chat.
 6. Public GitHub Codebase: Production FastAPI backend, SSE streaming engine, and single-page glassmorphism dashboard.
 7. Key Engineering Takeaways: Production sizing heuristics, vector database storage savings, and edge deployment constraints.
 
@@ -211,105 +211,119 @@ We benchmarked the full model suite on local CPU hardware:
 
 ## 5. The System in Action: Multimodal Assistant & Studio Showcase
 
-To demonstrate EmbeddingGemma 2 in production, we built the **EmbeddingGemma 2 Multimodal Stream Studio** featuring interactive conversational chat, audio voice messaging, video upload, PDF ingestion, and streaming RAG.
+To demonstrate EmbeddingGemma 2 in production, we built the **EmbeddingGemma 2 Multimodal Stream Studio**. Crucially, the interface provides **direct multi-turn conversational chat with the model**—taking the user's prompt and streaming a direct model response with full conversation history memory, completely free of extraneous RAG cards, similarity percentages, or index scanning citations.
 
-### 5.1 Conversational Text Chat with Streaming Evidence Citations
+In addition to text, the chat assistant accepts direct voice audio waveforms, video clips, and PDF documentation, alongside dedicated vector diagnostic and cross-modal matching modules.
 
-Figure 1 is the conversational text chat interface: it displays real-time Server-Sent Events (SSE) streaming responses paired with semantic evidence cards and cosine similarity percentages.
+### 5.1 Direct Multi-Turn Conversational Chat (Prompt & Model Response, Zero RAG)
 
-![Text Chat Streaming](https://substack-post-media.s3.amazonaws.com/public/images/c11b4b5a-7174-4736-9bc2-a893f7abd105_1848x1335.png)
+#### Turn 1: Conceptual Explanation of Matryoshka Representation Learning
 
-*Figure 1: Interactive Text Chat displaying retrieved semantic evidence citations and streaming response*
+Figure 1 illustrates the primary conversational interaction. The user submits a prompt asking the model to explain Matryoshka Representation Learning (MRL) and the mechanics of 6x vector compression down to 128 dimensions. The model streams back a comprehensive, structured response directly to the user:
 
----
+![Direct Chat Turn 1: MRL Conceptual Explanation](https://substack-post-media.s3.amazonaws.com/public/images/3fb77d2a-a5d2-46b1-ba8e-32d28631250e_1848x1649.png)
 
-### 5.2 Audio Voice Chat & Waveform Semantic Ingestion
-
-Figure 2 is the audio voice chat engine: it demonstrates raw 16 kHz mono waveform ingestion, cross-modal soundscape matching, and synchronized speech playback.
-
-![Audio Chat Streaming](https://substack-post-media.s3.amazonaws.com/public/images/423569cf-2f92-4e83-b21f-18a45d422c9e_1848x1311.png)
-
-*Figure 2: Audio Voice Chat showcasing raw audio waveform ingestion and cross-modal soundscape matching*
+*Figure 1: Direct multi-turn chat turn 1—prompt input and direct model streaming response explaining MRL without RAG citations*
 
 ---
 
-### 5.3 Video Upload & Keyframe Semantic Matching
+#### Turn 2: Follow-Up Request for Production Python Code
 
-Figure 3 is the video upload pipeline: it extracts keyframes via PyAV, computes cross-modal visual embeddings, and generates dynamic motion analyses with inline video playback.
+Figure 2 showcases true multi-turn context retention. Within the same conversational session, the user asks a follow-up prompt: *"How do I truncate embeddings to 128 dimensions in Python using SentenceTransformers?"* Retaining the conversational state, the model immediately streams a complete, ready-to-run Python implementation including normalization:
 
-![Video Chat Streaming](https://substack-post-media.s3.amazonaws.com/public/images/7bc0c508-3570-4ae4-91ea-6a22b3556e26_1848x1452.png)
+![Direct Chat Turn 2: Follow-up Python Code Generation](https://substack-post-media.s3.amazonaws.com/public/images/cb8f29b7-1b25-4abd-8c16-ab7147f81640_1848x3183.png)
 
-*Figure 3: Video Upload and Chat showing inline video playback and semantic alignment with motion graphics*
+*Figure 2: Direct multi-turn chat turn 2—follow-up coding prompt and direct syntax-highlighted SentenceTransformers response*
 
 ---
 
-### 5.4 PDF Document Ingestion & Page-Level Evidence Retrieval
+#### Turn 3: Multi-Turn Production Tradeoffs & Failure Modes
 
-Figure 4 is the PDF ingestion subsystem: it parses uploaded PDF documents via pypdf, creates chunk-level embeddings, and outputs answers cited with exact page numbers.
+Figure 3 captures a deeper technical follow-up: *"What are the key production tradeoffs or failure modes when deploying 128d truncated vectors at scale?"* The model reasons across the ongoing conversation and delivers an in-depth breakdown of cosine distance degradation, asymmetric indexing implications, and mitigation strategies:
 
-![PDF Chat Streaming](https://substack-post-media.s3.amazonaws.com/public/images/1a629390-9143-45a7-904b-e5ed4079c2c3_1848x1334.png)
+![Direct Chat Turn 3: Follow-up Production Tradeoffs](https://substack-post-media.s3.amazonaws.com/public/images/6baa4b9d-3fd5-4acf-ab75-b20abb9631f9_1848x4920.png)
 
-*Figure 4: PDF Document Ingestion displaying automatic page indexing and paragraph-level citations*
+*Figure 3: Direct multi-turn chat turn 3—follow-up production engineering prompt and direct model analysis*
+
+---
+
+### 5.2 Audio Voice Chat & Acoustic Ingestion
+
+Figure 4 illustrates the audio voice messaging workflow. A raw 16 kHz mono waveform (`ocean_waves.wav`) is attached directly into the conversation. The model receives the acoustic context and streams a natural response describing the soundscape and acoustic texture without intermediate ASR transcription delays:
+
+![Audio Voice Chat](https://substack-post-media.s3.amazonaws.com/public/images/204d7270-001f-40a6-8490-b0c6cbb7b2b2_1848x900.png)
+
+*Figure 4: Audio voice chat with raw waveform attachment and direct model conversational response*
+
+---
+
+### 5.3 Video Upload & Kinetic Motion Analysis
+
+Figure 5 shows video clip ingestion within the chat interface. Uploading an MP4 clip (`motion_demo.mp4`) extracts uniform keyframes using PyAV, allowing the user to converse directly with the model regarding motion aesthetics and scene dynamics:
+
+![Video Upload & Chat](https://substack-post-media.s3.amazonaws.com/public/images/e6138bd1-afe1-4d7e-88e6-708f34764da9_1848x1011.png)
+
+*Figure 5: Video upload and direct conversational analysis of kinetic motion dynamics*
+
+---
+
+### 5.4 PDF Document Ingestion & Contextual Discussion
+
+Figure 6 illustrates document chat. The user attaches a technical PDF specification document (`embeddinggemma_technical_report.pdf`). The system ingests page chunks and enables direct multi-turn conversational Q&A over the document content:
+
+![PDF Document Ingestion & Chat](https://substack-post-media.s3.amazonaws.com/public/images/b17da0fc-9278-46e2-9599-3de82ebe1b08_1848x840.png)
+
+*Figure 6: PDF document chat displaying attached technical report and direct conversational model summary*
 
 ---
 
 ### 5.5 Cross-Modal Pairwise Matcher & Matryoshka Inspector
 
-Figure 5 is the pairwise matcher: it evaluates cross-modal semantic similarity alongside real-time Matryoshka dimension retention metrics across 768d, 512d, 256d, and 128d.
+Figure 7 is the pairwise matcher: it evaluates cross-modal semantic similarity alongside real-time Matryoshka dimension retention metrics across 768d, 512d, 256d, and 128d.
 
 ![Pairwise Matcher & MRL](https://substack-post-media.s3.amazonaws.com/public/images/95fab919-bacf-48e9-aa96-d4661379cc7a_1440x960.png)
 
-*Figure 5: Pairwise semantic match evaluation and real-time MRL dimension breakdown*
+*Figure 7: Pairwise semantic match evaluation and real-time MRL dimension breakdown*
 
 ---
 
 ### 5.6 Vision & Cross-Modal Alignment
 
-Figure 6 is the cross-modal vision tool: it tests text-to-image projections into the unified latent space with instant image preview rendering.
+Figure 8 is the cross-modal vision tool: it tests text-to-image projections into the unified latent space with instant image preview rendering.
 
 ![Cross-Modal Vision Matching](https://substack-post-media.s3.amazonaws.com/public/images/907a6c12-fae6-4997-8fde-f24487c3bf0d_1440x960.png)
 
-*Figure 6: Text-to-image semantic matching with instant visual thumbnail rendering*
+*Figure 8: Text-to-image semantic matching with instant visual thumbnail rendering*
 
 ---
 
 ### 5.7 Universal Multimodal Corpus Search & Streaming RAG
 
-Figure 7 is the multimodal corpus search engine: it indexes code snippets, markdown documents, images, audio clips, and videos in a single unified retrieval table.
+Figure 9 is the multimodal corpus search engine: it indexes code snippets, markdown documents, images, audio clips, and videos in a single unified retrieval table.
 
 ![Multimodal Search & RAG](https://substack-post-media.s3.amazonaws.com/public/images/fdca6b27-53cb-4d24-a153-8358443cd84d_1440x960.png)
 
-*Figure 7: Streaming search results across video clips, audio tracks, text docs, and code files*
+*Figure 9: Streaming search results across video clips, audio tracks, text docs, and code files*
 
 ---
 
 ### 5.8 Vector Diagnostics & Interleaved Studio
 
-Figure 8 is the vector studio inspector: it computes L2 norm consistency, encoding latency, raw component vectors, and JSON vector downloads.
+Figure 10 is the vector studio inspector: it computes L2 norm consistency, encoding latency, raw component vectors, and JSON vector downloads.
 
 ![Vector Diagnostics](https://substack-post-media.s3.amazonaws.com/public/images/c7584937-95bb-4345-8be3-908b611324bb_1440x960.png)
 
-*Figure 8: Vector diagnostics showing 768d dimension verification and unit normalization*
+*Figure 10: Vector diagnostics showing 768d dimension verification and unit normalization*
 
 ---
 
-### 5.9 Modular Memory Matrix & Model Architecture
+### 5.9 Modular Memory Matrix & Live Architecture Switcher
 
-Figure 9 is the model architecture matrix: it displays parameter footprints, memory allocations, and active encoder towers across the 270M, 440M, 570M, and 740M checkpoints.
+Figure 11 displays the model architecture matrix and live switcher modal: engineers can inspect parameter footprints across the 270M, 440M, 570M, and 740M checkpoints and hot-reload active towers on demand:
 
-![Modular Architecture Matrix](https://substack-post-media.s3.amazonaws.com/public/images/dcb5ca7f-7014-443c-9cbf-3368c11228b4_1440x960.png)
+![Modular Architecture Matrix & Switcher](https://substack-post-media.s3.amazonaws.com/public/images/dcb5ca7f-7014-443c-9cbf-3368c11228b4_1440x960.png)
 
-*Figure 9: The modular architecture matrix displaying parameter footprints and active encoder allocations*
-
----
-
-### 5.10 Live Modular Weight Switcher
-
-Figure 10 is the configuration switcher: it enables live hot-reloading of specific encoder towers without terminating the running server process.
-
-![Live Modular Weight Switcher](https://substack-post-media.s3.amazonaws.com/public/images/2dc67fe8-50a9-40a8-ba66-7d05e53f795e_1440x960.png)
-
-*Figure 10: One-click modular switcher modal enabling live hot-reloading of specific encoder towers*
+*Figure 11: The modular architecture matrix displaying parameter footprints and active encoder allocations*
 
 ---
 

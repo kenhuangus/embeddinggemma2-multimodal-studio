@@ -30,6 +30,8 @@
   </script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Marked.js for clean markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
     body {
@@ -145,10 +147,10 @@
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h2 class="text-xl font-bold text-white flex items-center space-x-2">
-            <span>Multimodal Assistant & Chat</span>
-            <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium">Text • Audio • Video • PDF</span>
+            <span>Conversational AI Chat</span>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-medium">Direct Multi-Turn • Streaming</span>
           </h2>
-          <p class="text-sm text-slate-400">Conversational RAG assistant powered by EmbeddingGemma 2's 768d latent space. Chat with voice audio, upload PDFs, analyze videos, or type questions.</p>
+          <p class="text-sm text-slate-400">Direct conversational chat with the model. Ask prompts, explore code, or converse with voice audio, video, and documents.</p>
         </div>
         <div class="flex items-center space-x-2">
           <button onclick="clearChatHistory()" class="px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 hover:text-white text-xs flex items-center space-x-1.5 transition">
@@ -161,26 +163,30 @@
       <!-- Quick Context Starter Chips -->
       <div class="flex flex-wrap items-center gap-2 text-xs">
         <span class="text-slate-500 font-medium">Quick Starters:</span>
-        <button onclick="loadSampleChatPrompt('pdf_spec')" class="px-2.5 py-1 rounded-lg bg-indigo-950/40 border border-indigo-800/40 hover:bg-indigo-900/60 text-indigo-300 flex items-center space-x-1.5 transition">
-          <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-400"></i>
-          <span>📄 Load Spec PDF</span>
+        <button onclick="loadSampleChatPrompt('hello')" class="px-2.5 py-1 rounded-lg bg-indigo-950/40 border border-indigo-800/40 hover:bg-indigo-900/60 text-indigo-300 flex items-center space-x-1.5 transition">
+          <i data-lucide="sparkles" class="w-3.5 h-3.5 text-indigo-400"></i>
+          <span>👋 Hello! What can you do?</span>
+        </button>
+        <button onclick="loadSampleChatPrompt('explain_mrl')" class="px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-800/40 hover:bg-emerald-900/60 text-emerald-300 flex items-center space-x-1.5 transition">
+          <i data-lucide="help-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>💡 Explain MRL in simple terms</span>
+        </button>
+        <button onclick="loadSampleChatPrompt('code_example')" class="px-2.5 py-1 rounded-lg bg-cyan-950/40 border border-cyan-800/40 hover:bg-cyan-900/60 text-cyan-300 flex items-center space-x-1.5 transition">
+          <i data-lucide="code" class="w-3.5 h-3.5 text-cyan-400"></i>
+          <span>🐍 Python code for 128d</span>
         </button>
         <button onclick="loadSampleChatPrompt('voice_match')" class="px-2.5 py-1 rounded-lg bg-purple-950/40 border border-purple-800/40 hover:bg-purple-900/60 text-purple-300 flex items-center space-x-1.5 transition">
           <i data-lucide="mic" class="w-3.5 h-3.5 text-purple-400"></i>
-          <span>🎙️ Test Audio Chat</span>
+          <span>🎙️ Voice Audio prompt</span>
         </button>
-        <button onclick="loadSampleChatPrompt('video_match')" class="px-2.5 py-1 rounded-lg bg-cyan-950/40 border border-cyan-800/40 hover:bg-cyan-900/60 text-cyan-300 flex items-center space-x-1.5 transition">
-          <i data-lucide="video" class="w-3.5 h-3.5 text-cyan-400"></i>
-          <span>🎬 Analyze Video Clip</span>
-        </button>
-        <button onclick="loadSampleChatPrompt('mrl_question')" class="px-2.5 py-1 rounded-lg bg-emerald-950/40 border border-emerald-800/40 hover:bg-emerald-900/60 text-emerald-300 flex items-center space-x-1.5 transition">
-          <i data-lucide="help-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span>Ask about MRL 128d</span>
+        <button onclick="loadSampleChatPrompt('pdf_spec')" class="px-2.5 py-1 rounded-lg bg-amber-950/40 border border-amber-800/40 hover:bg-amber-900/60 text-amber-300 flex items-center space-x-1.5 transition">
+          <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>📄 Summarize Spec PDF</span>
         </button>
       </div>
 
       <!-- Chat Feed Container -->
-      <div id="chat-messages" class="glass-card rounded-2xl p-5 border border-slate-800 h-[480px] overflow-y-auto space-y-4">
+      <div id="chat-messages" class="glass-card rounded-2xl p-5 border border-slate-800 min-h-[460px] max-h-[580px] overflow-y-auto space-y-4">
         <!-- Initial Welcome Message -->
         <div class="flex items-start space-x-3">
           <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md">
@@ -188,40 +194,10 @@
           </div>
           <div class="flex-1 bg-slate-900/80 border border-slate-800 rounded-2xl rounded-tl-none p-4 text-xs text-slate-200 space-y-2">
             <div class="font-semibold text-sm text-white flex items-center justify-between">
-              <span>EmbeddingGemma 2 Multimodal Assistant</span>
-              <span class="text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Active • 768d</span>
+              <span>EmbeddingGemma 2 Assistant</span>
+              <span class="text-[10px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">Online</span>
             </div>
-            <p>Welcome! I am equipped with Google's unified <strong>EmbeddingGemma 2</strong> model. You can seamlessly communicate and query knowledge across all four modalities:</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-              <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2">
-                <i data-lucide="message-square" class="w-4 h-4 text-indigo-400"></i>
-                <div>
-                  <div class="font-medium text-white text-[11px]">💬 Text & Code Chat</div>
-                  <div class="text-[10px] text-slate-400">Natural language questions & code search</div>
-                </div>
-              </div>
-              <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2">
-                <i data-lucide="mic" class="w-4 h-4 text-purple-400"></i>
-                <div>
-                  <div class="font-medium text-white text-[11px]">🎙️ Audio Voice Chat</div>
-                  <div class="text-[10px] text-slate-400">Record mic audio or upload voice notes</div>
-                </div>
-              </div>
-              <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2">
-                <i data-lucide="video" class="w-4 h-4 text-cyan-400"></i>
-                <div>
-                  <div class="font-medium text-white text-[11px]">🎬 Video Upload & Search</div>
-                  <div class="text-[10px] text-slate-400">PyAV keyframe extraction & semantic matching</div>
-                </div>
-              </div>
-              <div class="p-2.5 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center space-x-2">
-                <i data-lucide="file-text" class="w-4 h-4 text-emerald-400"></i>
-                <div>
-                  <div class="font-medium text-white text-[11px]">📄 PDF Document Ingestion</div>
-                  <div class="text-[10px] text-slate-400">Extract pages, index chunks & cite sources</div>
-                </div>
-              </div>
-            </div>
+            <p>Hello! I am your AI assistant. You can converse directly with me across multi-turn chats. Ask me technical questions about embeddings and code, or upload voice audio, videos, and PDFs to discuss them.</p>
           </div>
         </div>
       </div>
@@ -1442,10 +1418,13 @@
     }
 
     // ==========================================
-    // MULTIMODAL ASSISTANT & CHAT ENGINE
+    // MULTIMODAL CONVERSATIONAL CHAT ENGINE (MULTI-TURN)
     // ==========================================
 
+    let conversationHistory = [];
+
     function clearChatHistory() {
+      conversationHistory = [];
       const container = document.getElementById('chat-messages');
       container.innerHTML = `
         <div class="flex items-start space-x-3">
@@ -1453,7 +1432,7 @@
             EG
           </div>
           <div class="flex-1 bg-slate-900/80 border border-slate-800 rounded-2xl rounded-tl-none p-4 text-xs text-slate-200 space-y-1">
-            <span class="font-semibold text-white">Chat cleared.</span> You can ask questions, upload PDFs, record voice audio, or analyze videos.
+            <span class="font-semibold text-white">Conversation cleared.</span> Send a prompt to start a new chat session!
           </div>
         </div>
       `;
@@ -1475,15 +1454,15 @@
 
     function loadSampleChatPrompt(key) {
       const input = document.getElementById('chat-input');
-      if (key === 'pdf_spec') {
-        currentChatAttachment = {
-          modality: 'pdf',
-          path: 'sample_assets/embeddinggemma_technical_report.pdf',
-          url: '/sample_assets/embeddinggemma_technical_report.pdf',
-          filename: 'embeddinggemma_technical_report.pdf'
-        };
-        showChatAttachmentBadge('📄 PDF: embeddinggemma_technical_report.pdf');
-        input.value = "What does the technical report explain about Matryoshka Representation Learning (MRL) truncation?";
+      if (key === 'hello') {
+        clearChatAttachment();
+        input.value = "Hello! Who are you, and what are your core capabilities as EmbeddingGemma 2?";
+      } else if (key === 'explain_mrl') {
+        clearChatAttachment();
+        input.value = "Can you explain Matryoshka Representation Learning (MRL) and why it allows 6x compression down to 128d?";
+      } else if (key === 'code_example') {
+        clearChatAttachment();
+        input.value = "Write a complete Python code example using SentenceTransformers to encode text and truncate vectors to 128 dimensions.";
       } else if (key === 'voice_match') {
         currentChatAttachment = {
           modality: 'audio',
@@ -1491,8 +1470,8 @@
           url: '/sample_assets/ocean_waves.wav',
           filename: 'ocean_waves.wav'
         };
-        showChatAttachmentBadge('🎙️ Audio Clip: ocean_waves.wav (16 kHz Mono)');
-        input.value = "What visual scenery or documents in the database correlate with this audio waveform?";
+        showChatAttachmentBadge('🎙️ Audio Note: ocean_waves.wav (16 kHz Mono)');
+        input.value = "I have attached this audio waveform. What scene does this soundscape convey?";
       } else if (key === 'video_match') {
         currentChatAttachment = {
           modality: 'video',
@@ -1501,10 +1480,16 @@
           filename: 'motion_demo.mp4'
         };
         showChatAttachmentBadge('🎬 Video Clip: motion_demo.mp4');
-        input.value = "Analyze the motion dynamics in this video clip and identify related algorithmic concepts.";
-      } else if (key === 'mrl_question') {
-        clearChatAttachment();
-        input.value = "How does Matryoshka Representation Learning achieve 6x storage compression at 128d while retaining semantic accuracy?";
+        input.value = "Analyze the motion dynamics and aesthetic themes in this video clip.";
+      } else if (key === 'pdf_spec') {
+        currentChatAttachment = {
+          modality: 'pdf',
+          path: 'sample_assets/embeddinggemma_technical_report.pdf',
+          url: '/sample_assets/embeddinggemma_technical_report.pdf',
+          filename: 'embeddinggemma_technical_report.pdf'
+        };
+        showChatAttachmentBadge('📄 PDF: embeddinggemma_technical_report.pdf');
+        input.value = "Summarize the architectural specifications and MRL retention metrics in this technical report.";
       }
       input.focus();
     }
@@ -1526,7 +1511,7 @@
 
       try {
         if (modality === 'pdf') {
-          showChatAttachmentBadge(`Parsing & indexing ${file.name}...`);
+          showChatAttachmentBadge(`Parsing ${file.name}...`);
           const res = await fetch('/api/upload/pdf', { method: 'POST', body: formData });
           const data = await res.json();
           currentChatAttachment = {
@@ -1536,7 +1521,7 @@
             filename: file.name,
             num_chunks: data.num_chunks
           };
-          showChatAttachmentBadge(`📄 Indexed PDF: ${file.name} (${data.num_chunks} chunks)`);
+          showChatAttachmentBadge(`📄 Attached PDF: ${file.name}`);
           document.getElementById('chat-input').placeholder = `Ask anything about ${file.name}...`;
         } else {
           const res = await fetch('/api/upload', { method: 'POST', body: formData });
@@ -1560,7 +1545,6 @@
       const timer = document.getElementById('voice-record-timer');
 
       if (!isRecordingVoice) {
-        // Start recording
         try {
           if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             throw new Error("Microphone API not supported in this browser context");
@@ -1595,18 +1579,16 @@
           }, 1000);
           btn.classList.add('bg-rose-500/20', 'text-rose-400');
         } catch (err) {
-          // Graceful fallback for environments without physical mic access
-          console.warn("Microphone not available, falling back to bundled voice sample:", err);
+          console.warn("Microphone fallback:", err);
           currentChatAttachment = {
             modality: 'audio',
-            path: 'sample_assets/deep_bell.wav',
-            url: '/sample_assets/deep_bell.wav',
-            filename: 'Sample Voice / Audio Note (16 kHz Mono)'
+            path: 'sample_assets/ocean_waves.wav',
+            url: '/sample_assets/ocean_waves.wav',
+            filename: 'Audio Note (ocean_waves.wav)'
           };
-          showChatAttachmentBadge('🎙️ Sample Audio Note (deep_bell.wav)');
+          showChatAttachmentBadge('🎙️ Sample Audio Note (ocean_waves.wav)');
         }
       } else {
-        // Stop recording
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
           mediaRecorder.stop();
         }
@@ -1626,7 +1608,7 @@
 
       const container = document.getElementById('chat-messages');
 
-      // 1. Render User Message
+      // 1. Render User Message Bubble
       const userBubble = document.createElement('div');
       userBubble.className = "flex items-start justify-end space-x-3";
       
@@ -1644,8 +1626,8 @@
       }
 
       userBubble.innerHTML = `
-        <div class="max-w-xl bg-indigo-600/20 border border-indigo-500/30 rounded-2xl rounded-tr-none p-3.5 text-xs text-white">
-          ${text ? `<div>${text}</div>` : ''}
+        <div class="max-w-2xl bg-indigo-600/20 border border-indigo-500/30 rounded-2xl rounded-tr-none p-4 text-xs text-white space-y-1.5">
+          ${text ? `<div class="leading-relaxed whitespace-pre-wrap">${text}</div>` : ''}
           ${attachHTML}
         </div>
         <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md">
@@ -1654,11 +1636,14 @@
       `;
       container.appendChild(userBubble);
 
+      // Record in conversation history
+      conversationHistory.push({ role: 'user', content: text || (attach ? `[Attached ${attach.modality}: ${attach.filename}]` : '') });
+
       // Reset composer & attachment
       input.value = '';
       clearChatAttachment();
 
-      // 2. Render Assistant Placeholder Bubble
+      // 2. Render Assistant Bubble
       const botMsgId = `bot-msg-${Date.now()}`;
       const botBubble = document.createElement('div');
       botBubble.className = "flex items-start space-x-3";
@@ -1666,35 +1651,27 @@
         <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center flex-shrink-0 text-white font-bold text-xs shadow-md">
           EG
         </div>
-        <div class="flex-1 max-w-2xl bg-slate-900/90 border border-slate-800 rounded-2xl rounded-tl-none p-4 text-xs text-slate-200 space-y-3">
-          <!-- Status Banner -->
-          <div id="${botMsgId}-status-box" class="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800/80">
-            <span id="${botMsgId}-status" class="flex items-center space-x-2 text-indigo-400">
-              <span class="w-2 h-2 rounded-full bg-indigo-500 animate-ping"></span>
-              <span>EmbeddingGemma 2 processing...</span>
+        <div class="flex-1 max-w-2xl bg-slate-900/90 border border-slate-800 rounded-2xl rounded-tl-none p-4 text-xs text-slate-200 space-y-2.5">
+          <div class="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-800/80">
+            <span class="font-semibold text-slate-200">EmbeddingGemma 2</span>
+            <span id="${botMsgId}-status" class="text-indigo-400 flex items-center space-x-1.5">
+              <span class="w-2 h-2 rounded-full bg-indigo-400 animate-ping"></span>
+              <span class="text-[10px]">Thinking...</span>
             </span>
-            <span id="${botMsgId}-pct" class="font-mono text-indigo-400">10%</span>
           </div>
 
-          <!-- Progress Line -->
-          <div class="w-full bg-slate-950 rounded-full h-1 overflow-hidden">
-            <div id="${botMsgId}-progress" class="bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 h-full w-[10%] transition-all duration-150"></div>
-          </div>
-
-          <!-- Retrieved Sources Accordion Container -->
-          <div id="${botMsgId}-sources" class="hidden space-y-1.5 pt-1">
-            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Retrieved Semantic Evidence</div>
-            <div id="${botMsgId}-sources-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
-          </div>
-
-          <!-- Streaming Text Area -->
-          <div id="${botMsgId}-content" class="leading-relaxed text-slate-200 whitespace-pre-line font-normal"></div>
+          <!-- Streaming Text Container -->
+          <div id="${botMsgId}-content" class="leading-relaxed text-slate-200 text-xs space-y-2 font-normal"></div>
 
           <!-- Action Footer -->
           <div id="${botMsgId}-actions" class="hidden flex items-center justify-end space-x-2 pt-2 border-t border-slate-800/80 text-[11px]">
+            <button onclick="copyResponseText('${botMsgId}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center space-x-1 transition">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Copy</span>
+            </button>
             <button onclick="speakText('${botMsgId}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center space-x-1 transition">
               <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
-              <span>Speak Response</span>
+              <span>Read Aloud</span>
             </button>
           </div>
         </div>
@@ -1703,13 +1680,14 @@
       container.scrollTop = container.scrollHeight;
       lucide.createIcons();
 
-      // 3. Initiate SSE Streaming Request
+      // 3. Initiate SSE Streaming Request with Multi-Turn History
       const payload = {
         message: text,
         modality: attach ? attach.modality : 'text',
         media_path: attach ? attach.path : null,
         media_url: attach ? attach.url : null,
         filename: attach ? attach.filename : null,
+        history: conversationHistory.slice(-10),
         truncate_dim: 768
       };
 
@@ -1734,41 +1712,22 @@
             if (line.startsWith('data: ')) {
               const data = JSON.parse(line.substring(6));
 
-              if (data.event === 'status') {
-                const sEl = document.getElementById(`${botMsgId}-status`);
-                const pEl = document.getElementById(`${botMsgId}-pct`);
-                const barEl = document.getElementById(`${botMsgId}-progress`);
-                if (sEl) sEl.innerHTML = `<span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse mr-1"></span><span>${data.msg}</span>`;
-                if (pEl) pEl.innerText = `${data.progress}%`;
-                if (barEl) barEl.style.width = `${data.progress}%`;
-              } else if (data.event === 'retrieval') {
-                const srcBox = document.getElementById(`${botMsgId}-sources`);
-                const srcList = document.getElementById(`${botMsgId}-sources-list`);
-                if (srcBox && srcList) {
-                  srcBox.classList.remove('hidden');
-                  srcList.innerHTML = (data.sources || []).map(s => `
-                    <div class="p-2 rounded-xl bg-slate-950/80 border border-slate-800 text-[10px] space-y-1">
-                      <div class="flex items-center justify-between">
-                        <span class="font-semibold text-white truncate max-w-[130px]">${s.title}</span>
-                        <span class="text-emerald-400 font-mono">${(s.similarity * 100).toFixed(1)}%</span>
-                      </div>
-                      <span class="inline-block px-1.5 py-0.5 rounded bg-slate-800 text-[9px] text-slate-400 uppercase font-bold">${s.modality}</span>
-                    </div>
-                  `).join('');
-                }
-              } else if (data.event === 'token') {
+              if (data.event === 'token') {
                 fullAnswer += data.chunk;
                 const cEl = document.getElementById(`${botMsgId}-content`);
-                if (cEl) cEl.innerText = fullAnswer;
+                if (cEl) {
+                  if (typeof marked !== 'undefined') {
+                    cEl.innerHTML = marked.parse(fullAnswer);
+                  } else {
+                    cEl.innerText = fullAnswer;
+                  }
+                }
                 container.scrollTop = container.scrollHeight;
               } else if (data.event === 'done') {
-                const pEl = document.getElementById(`${botMsgId}-pct`);
-                const barEl = document.getElementById(`${botMsgId}-progress`);
+                conversationHistory.push({ role: 'assistant', content: fullAnswer });
                 const sEl = document.getElementById(`${botMsgId}-status`);
                 const actEl = document.getElementById(`${botMsgId}-actions`);
-                if (pEl) pEl.innerText = "100%";
-                if (barEl) barEl.style.width = "100%";
-                if (sEl) sEl.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400 mr-1"></i><span class="text-emerald-400">Synthesized in ${data.elapsed}s</span>`;
+                if (sEl) sEl.innerHTML = `<span class="text-emerald-400 font-mono text-[10px]">Completed in ${data.elapsed}s</span>`;
                 if (actEl) actEl.classList.remove('hidden');
                 lucide.createIcons();
                 container.scrollTop = container.scrollHeight;
@@ -1779,6 +1738,14 @@
       } catch (err) {
         const cEl = document.getElementById(`${botMsgId}-content`);
         if (cEl) cEl.innerText = "Error in stream response: " + err;
+      }
+    }
+
+    function copyResponseText(msgId) {
+      const cEl = document.getElementById(`${msgId}-content`);
+      if (cEl) {
+        navigator.clipboard.writeText(cEl.innerText);
+        alert("Response copied to clipboard!");
       }
     }
 

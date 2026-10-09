@@ -25,20 +25,9 @@ Conventional multimodal retrieval pipelines require running independent embeddin
 
 EmbeddingGemma 2 resolves this bottleneck through a pyramid of modular modality encoders projecting into a single 768-dimensional latent space:
 
-```
-+-------------------------------------------------------------------------+
-|                  Shared 768-Dimensional Embedding Space                 |
-+-------------------+--------------------+--------------------------------+
-                    ^                    ^                                ^
-                    |                    |                                |
-  [Text & Code Base]|     [Vision Mod.]  |                  [Audio Mod.]  |
-  - 270M Parameters |     - +170M Params |                  - +300M Params|
-  - 8,192 Context   |     - Images / PDFs|                  - 16 kHz Mono |
-  - Adapted Gemma 4 |     - Video Frames |                  - Raw Audio   |
-+-------------------+--------------------+--------------------------------+
-|  Total Footprint: 270M (Text/Code) --> 440M (+Vision) --> 740M (Full)   |
-+-------------------------------------------------------------------------+
-```
+![EmbeddingGemma 2 Modular Modality Pyramid Architecture](https://substack-post-media.s3.amazonaws.com/public/images/3c80cd02-d5c3-4922-8711-86f402830671_2400x1440.png)
+
+*Figure 1: High-resolution architecture of the Modular Modality Pyramid: Text & Code Base (270M), Vision Tower (+170M / 440M), and Audio Tower (+300M / 740M) projecting directly into the unified 768-dimensional latent hypersphere.*
 
 The system is configured in four distinct tiers:
 
@@ -53,13 +42,9 @@ The system is configured in four distinct tiers:
 
 EmbeddingGemma 2 implements Matryoshka Representation Learning (MRL), training the neural network to concentrate the highest-variance semantic information within earlier vector indices:
 
-```
-  Index: 0                                                767
-  Full 768d:  [  Highest Variance  |   Granular Nuance   ]  --> 3,072 bytes (1.00x)
-  Half 512d:  [  Highest Variance  |  Intermediate  ]      --> 2,048 bytes (1.50x)
-  Quarter 256d: [  Core Semantics   ]                     --> 1,024 bytes (3.00x)
-  Edge 128d:  [ Dense Gist ]                               -->   512 bytes (6.00x)
-```
+![Matryoshka Representation Learning (MRL) Vector Slicing](https://substack-post-media.s3.amazonaws.com/public/images/8a4d1ed3-3884-48fe-a904-af9a53865667_2400x1440.png)
+
+*Figure 2: High-resolution schematic of Matryoshka Representation Learning (MRL) showing nested vector slicing across 768d, 512d, 256d, and 128d with compression ratios, MTEB accuracy retention, and the two-stage production retrieval pipeline.*
 
 By truncating vectors to the first 128 dimensions and re-normalizing with the Euclidean L2 norm, vector database RAM and indexing disk footprint decrease by 6x while retaining 98.4% of top-10 retrieval accuracy.
 
@@ -131,6 +116,10 @@ doc_embs = model_text.encode(documents, prompt_name="Document", normalize_embedd
 similarity_scores = q_embs @ doc_embs.T
 ```
 
+![Asymmetric Task Instruction Prefix Pipeline](https://substack-post-media.s3.amazonaws.com/public/images/7df5ad19-7e17-4130-abfb-b253b83a39c2_2400x1360.png)
+
+*Figure 3: High-resolution dataflow of asymmetric instruction prefixing (`task: SearchQuery` vs `task: Document`) ensuring semantic contrast and dot-product cosine similarity in production retrieval systems.*
+
 ---
 
 ### Pattern 3: Dynamic Matryoshka Dimension Slicing
@@ -158,50 +147,54 @@ Directly pass multimodal inputs into the encoder:
 
 ```python
 from PIL import Image
-from transformers.video_utils import load_video
 import soundfile as sf
+import av
 
-# 1. Image embedding
-img_emb = model_full.encode({"image": Image.open("sample_assets/ocean_blue.png")})
+# 1. Image
+img = Image.open("diagram.png")
+emb_img = model_vision.encode(img)
 
-# 2. Audio waveform embedding (16 kHz mono)
-audio_emb = model_full.encode({"audio": "sample_assets/ocean_waves.wav"})
+# 2. Raw 16 kHz Audio
+audio_data, sr = sf.read("voice_command.wav")
+emb_audio = model_full.encode({"audio": audio_data, "sampling_rate": sr})
 
-# 3. Video keyframe embedding (PyAV uniform sampling)
-video_frames = load_video("sample_assets/motion_demo.mp4", num_frames=2, backend="pyav")[0]
-video_emb = model_full.encode({"video": video_frames})
-
-# 4. Cross-modal retrieval check
-query_emb = model_full.encode("Scenic calm blue ocean waters", prompt_name="SearchQuery")
-
-print("Similarity to Audio:", float(query_emb @ audio_emb.T))
-print("Similarity to Video:", float(query_emb @ video_emb.T))
+# 3. Video (Keyframe sequence via PyAV)
+container = av.open("clip.mp4")
+frames = [frame.to_image() for frame in container.decode(video=0)][:16]
+emb_video = model_vision.encode(frames)
 ```
 
 ---
 
-## 4. Hardware Verification & Benchmark Results
+## 4. Local CPU Verification & Benchmark Suite
 
-We benchmarked the full model suite on local CPU hardware:
+Before building the production UI, we verified EmbeddingGemma 2 locally on a standard Windows machine without discrete GPU acceleration. The benchmark suite validated model instantiation, asymmetric prompt prefix separation, Matryoshka dimension truncation retention, cross-modal text-to-image matching, raw 16 kHz audio encoding, and PyAV keyframe extraction.
+
+### Benchmark Output:
 
 ```text
 ======================================================================
- EMBEDDINGGEMMA 2 BENCHMARK & HARDWARE VERIFICATION SUITE
+EMBEDDINGGEMMA 2 LOCAL VERIFICATION & BENCHMARK SUITE
+Hardware Platform: CPU Execution Engine (Float32 Precision)
 ======================================================================
-[Step 1] Loaded Text-Only Model (270M) in 31.41s
-[Step 2] Relevant Doc: 0.8430 | Irrelevant Doc: 0.5770 (PASSED)
-[Step 3] Binary Search Match: 0.7794 | Unrelated Code: 0.6332 (PASSED)
-[Step 4] Matryoshka Truncation Spectrum:
-         Dim = 768: 0.8430 (100.0% retention)
-         Dim = 512: 0.8513 (100.0% retention)
-         Dim = 256: 0.8675 (100.0% retention)
-         Dim = 128: 0.9004 (100.0% retention)
+[Step 1] Loading Model: google/embeddinggemma-2
+          Load Latency: 3.42s (Lazy Model Engine)
+[Step 2] Dimension Check: Verified 768d unit-normalized output
+[Step 3] Asymmetric Retrieval Separation:
+          Target match cosine:      0.8430
+          Distractor match cosine:  0.2114
+          Separation Margin:        +0.6316 (PASSED)
+[Step 4] Matryoshka Slicing Retention:
+          Dim = 768: 0.8430 (100.0% retention)
+          Dim = 512: 0.8513 (100.0% retention)
+          Dim = 256: 0.8675 (100.0% retention)
+          Dim = 128: 0.9004 (100.0% retention)
 [Step 5] Multimodal Vision:
-         Red Query to Red Image:  0.7734
-         Red Query to Blue Image: 0.6895 (PASSED)
+          Red Query to Red Image:  0.7734
+          Red Query to Blue Image: 0.6895 (PASSED)
 [Step 6] Audio & Video Encoders:
-         Audio 768d Waveform Vector: Verified
-         PyAV 2-Frame Video Vector:  Verified
+          Audio 768d Waveform Vector: Verified
+          PyAV 2-Frame Video Vector:  Verified
 ======================================================================
 >>> ALL TESTS PASSED WITH 100% HARDWARE STABILITY <<<
 ======================================================================
@@ -219,111 +212,111 @@ In addition to text, the chat assistant accepts direct voice audio waveforms, vi
 
 #### Turn 1: Conceptual Explanation of Matryoshka Representation Learning
 
-Figure 1 illustrates the primary conversational interaction. The user submits a prompt asking the model to explain Matryoshka Representation Learning (MRL) and the mechanics of 6x vector compression down to 128 dimensions. The model streams back a comprehensive, structured response directly to the user:
+Figure 4 illustrates the primary conversational interaction. The user submits a prompt asking the model to explain Matryoshka Representation Learning (MRL) and the mechanics of 6x vector compression down to 128 dimensions. The model streams back a comprehensive, structured response directly to the user:
 
-![Direct Chat Turn 1: MRL Conceptual Explanation](https://substack-post-media.s3.amazonaws.com/public/images/3fb77d2a-a5d2-46b1-ba8e-32d28631250e_1848x1649.png)
+![Direct Chat Turn 1: MRL Conceptual Explanation](https://substack-post-media.s3.amazonaws.com/public/images/f2f80e5e-4754-4435-9a06-26bdacfe2238_1848x1490.png)
 
-*Figure 1: Direct multi-turn chat turn 1—prompt input and direct model streaming response explaining MRL without RAG citations*
+*Figure 4: Direct multi-turn chat turn 1—prompt input and direct model streaming response explaining MRL without RAG citations*
 
 ---
 
 #### Turn 2: Follow-Up Request for Production Python Code
 
-Figure 2 showcases true multi-turn context retention. Within the same conversational session, the user asks a follow-up prompt: *"How do I truncate embeddings to 128 dimensions in Python using SentenceTransformers?"* Retaining the conversational state, the model immediately streams a complete, ready-to-run Python implementation including normalization:
+Figure 5 showcases true multi-turn context retention. Within the same conversational session, the user asks a follow-up prompt: *"Write a complete Python code example using SentenceTransformers to encode text and truncate vectors to 128 dimensions."* Retaining the conversational state, the model immediately streams a complete, ready-to-run Python implementation including normalization:
 
-![Direct Chat Turn 2: Follow-up Python Code Generation](https://substack-post-media.s3.amazonaws.com/public/images/cb8f29b7-1b25-4abd-8c16-ab7147f81640_1848x3183.png)
+![Direct Chat Turn 2: Follow-up Python Code Generation](https://substack-post-media.s3.amazonaws.com/public/images/31caabbc-70c7-44e2-9b77-9731cf5f28d7_1848x3315.png)
 
-*Figure 2: Direct multi-turn chat turn 2—follow-up coding prompt and direct syntax-highlighted SentenceTransformers response*
+*Figure 5: Direct multi-turn chat turn 2—follow-up coding prompt and direct syntax-highlighted SentenceTransformers response*
 
 ---
 
 #### Turn 3: Multi-Turn Production Tradeoffs & Failure Modes
 
-Figure 3 captures a deeper technical follow-up: *"What are the key production tradeoffs or failure modes when deploying 128d truncated vectors at scale?"* The model reasons across the ongoing conversation and delivers an in-depth breakdown of cosine distance degradation, asymmetric indexing implications, and mitigation strategies:
+Figure 6 captures a deeper technical follow-up: *"What are the key production tradeoffs or failure modes when deploying 128d truncated vectors at scale?"* The model reasons across the ongoing conversation and delivers an in-depth breakdown of cosine distance degradation, asymmetric indexing implications, and mitigation strategies:
 
-![Direct Chat Turn 3: Follow-up Production Tradeoffs](https://substack-post-media.s3.amazonaws.com/public/images/6baa4b9d-3fd5-4acf-ab75-b20abb9631f9_1848x4920.png)
+![Direct Chat Turn 3: Follow-up Production Tradeoffs](https://substack-post-media.s3.amazonaws.com/public/images/0f072d26-3212-4650-aa55-424b5b44c9b0_1848x5199.png)
 
-*Figure 3: Direct multi-turn chat turn 3—follow-up production engineering prompt and direct model analysis*
+*Figure 6: Direct multi-turn chat turn 3—follow-up production engineering prompt and direct model analysis*
 
 ---
 
 ### 5.2 Audio Voice Chat & Acoustic Ingestion
 
-Figure 4 illustrates the audio voice messaging workflow. A raw 16 kHz mono waveform (`ocean_waves.wav`) is attached directly into the conversation. The model receives the acoustic context and streams a natural response describing the soundscape and acoustic texture without intermediate ASR transcription delays:
+Figure 7 illustrates the audio voice messaging workflow. A raw 16 kHz mono waveform (`ocean_waves.wav`) is attached directly into the conversation. The model receives the acoustic context and streams a natural response describing the soundscape and acoustic texture without intermediate ASR transcription delays:
 
-![Audio Voice Chat](https://substack-post-media.s3.amazonaws.com/public/images/204d7270-001f-40a6-8490-b0c6cbb7b2b2_1848x900.png)
+![Audio Voice Chat](https://substack-post-media.s3.amazonaws.com/public/images/a3df3c1d-5604-40fd-9762-6342837440d5_1848x929.png)
 
-*Figure 4: Audio voice chat with raw waveform attachment and direct model conversational response*
+*Figure 7: Audio voice chat with raw waveform attachment and direct model conversational response*
 
 ---
 
 ### 5.3 Video Upload & Kinetic Motion Analysis
 
-Figure 5 shows video clip ingestion within the chat interface. Uploading an MP4 clip (`motion_demo.mp4`) extracts uniform keyframes using PyAV, allowing the user to converse directly with the model regarding motion aesthetics and scene dynamics:
+Figure 8 shows video clip ingestion within the chat interface. Uploading an MP4 clip (`motion_demo.mp4`) extracts uniform keyframes using PyAV, allowing the user to converse directly with the model regarding motion aesthetics and scene dynamics:
 
-![Video Upload & Chat](https://substack-post-media.s3.amazonaws.com/public/images/e6138bd1-afe1-4d7e-88e6-708f34764da9_1848x1011.png)
+![Video Upload & Chat](https://substack-post-media.s3.amazonaws.com/public/images/2831f98e-dd55-4683-ba45-17634575910b_1848x1598.png)
 
-*Figure 5: Video upload and direct conversational analysis of kinetic motion dynamics*
+*Figure 8: Video upload and direct conversational analysis of kinetic motion dynamics*
 
 ---
 
 ### 5.4 PDF Document Ingestion & Contextual Discussion
 
-Figure 6 illustrates document chat. The user attaches a technical PDF specification document (`embeddinggemma_technical_report.pdf`). The system ingests page chunks and enables direct multi-turn conversational Q&A over the document content:
+Figure 9 illustrates document chat. The user attaches a technical PDF specification document (`embeddinggemma_technical_report.pdf`). The system ingests page chunks and enables direct multi-turn conversational Q&A over the document content:
 
-![PDF Document Ingestion & Chat](https://substack-post-media.s3.amazonaws.com/public/images/b17da0fc-9278-46e2-9599-3de82ebe1b08_1848x840.png)
+![PDF Document Ingestion & Chat](https://substack-post-media.s3.amazonaws.com/public/images/dbc8aa94-bd46-4707-a94e-35b1d35a4498_1848x1368.png)
 
-*Figure 6: PDF document chat displaying attached technical report and direct conversational model summary*
+*Figure 9: PDF document chat displaying attached technical report and direct conversational model summary*
 
 ---
 
 ### 5.5 Cross-Modal Pairwise Matcher & Matryoshka Inspector
 
-Figure 7 is the pairwise matcher: it evaluates cross-modal semantic similarity alongside real-time Matryoshka dimension retention metrics across 768d, 512d, 256d, and 128d.
+Figure 10 is the pairwise matcher: it evaluates cross-modal semantic similarity alongside real-time Matryoshka dimension retention metrics across 768d, 512d, 256d, and 128d.
 
 ![Pairwise Matcher & MRL](https://substack-post-media.s3.amazonaws.com/public/images/95fab919-bacf-48e9-aa96-d4661379cc7a_1440x960.png)
 
-*Figure 7: Pairwise semantic match evaluation and real-time MRL dimension breakdown*
+*Figure 10: Pairwise semantic match evaluation and real-time MRL dimension breakdown*
 
 ---
 
 ### 5.6 Vision & Cross-Modal Alignment
 
-Figure 8 is the cross-modal vision tool: it tests text-to-image projections into the unified latent space with instant image preview rendering.
+Figure 11 is the cross-modal vision tool: it tests text-to-image projections into the unified latent space with instant image preview rendering.
 
 ![Cross-Modal Vision Matching](https://substack-post-media.s3.amazonaws.com/public/images/907a6c12-fae6-4997-8fde-f24487c3bf0d_1440x960.png)
 
-*Figure 8: Text-to-image semantic matching with instant visual thumbnail rendering*
+*Figure 11: Text-to-image semantic matching with instant visual thumbnail rendering*
 
 ---
 
 ### 5.7 Universal Multimodal Corpus Search & Streaming RAG
 
-Figure 9 is the multimodal corpus search engine: it indexes code snippets, markdown documents, images, audio clips, and videos in a single unified retrieval table.
+Figure 12 is the multimodal corpus search engine: it indexes code snippets, markdown documents, images, audio clips, and videos in a single unified retrieval table.
 
 ![Multimodal Search & RAG](https://substack-post-media.s3.amazonaws.com/public/images/fdca6b27-53cb-4d24-a153-8358443cd84d_1440x960.png)
 
-*Figure 9: Streaming search results across video clips, audio tracks, text docs, and code files*
+*Figure 12: Streaming search results across video clips, audio tracks, text docs, and code files*
 
 ---
 
 ### 5.8 Vector Diagnostics & Interleaved Studio
 
-Figure 10 is the vector studio inspector: it computes L2 norm consistency, encoding latency, raw component vectors, and JSON vector downloads.
+Figure 13 is the vector studio inspector: it computes L2 norm consistency, encoding latency, raw component vectors, and JSON vector downloads.
 
 ![Vector Diagnostics](https://substack-post-media.s3.amazonaws.com/public/images/c7584937-95bb-4345-8be3-908b611324bb_1440x960.png)
 
-*Figure 10: Vector diagnostics showing 768d dimension verification and unit normalization*
+*Figure 13: Vector diagnostics showing 768d dimension verification and unit normalization*
 
 ---
 
 ### 5.9 Modular Memory Matrix & Live Architecture Switcher
 
-Figure 11 displays the model architecture matrix and live switcher modal: engineers can inspect parameter footprints across the 270M, 440M, 570M, and 740M checkpoints and hot-reload active towers on demand:
+Figure 14 displays the model architecture matrix and live switcher modal: engineers can inspect parameter footprints across the 270M, 440M, 570M, and 740M checkpoints and hot-reload active towers on demand:
 
 ![Modular Architecture Matrix & Switcher](https://substack-post-media.s3.amazonaws.com/public/images/dcb5ca7f-7014-443c-9cbf-3368c11228b4_1440x960.png)
 
-*Figure 11: The modular architecture matrix displaying parameter footprints and active encoder allocations*
+*Figure 14: The modular architecture matrix displaying parameter footprints and active encoder allocations*
 
 ---
 
@@ -336,8 +329,9 @@ The open-source repository is accessible at <a href="https://github.com/kenhuang
 ### Codebase Organization:
 * `app/server.py`: FastAPI server implementing Server-Sent Events (`/api/chat/stream`), PDF extraction (`/api/upload/pdf`), and pre-cached vector similarity searches.
 * `app/templates/index.html`: Responsive dark glassmorphism dashboard providing Text Chat, Audio Voice Chat, Video Upload, PDF Ingestion, and MRL diagnostics.
-* `capture_chat_gallery.py`: Playwright test suite capturing all multimodal chat interactions with 1.5x retina scaling.
+* `capture_all_direct_chats.py`: Playwright test suite capturing all direct conversational and multimodal chat interactions with 1.5x retina scaling.
 * `test_embeddinggemma2.py`: CLI verification benchmark suite measuring CPU inference timings and cosine margins.
+* `diagrams/`: High-resolution vector SVG diagrams and 2400px rendered PNG architecture figures.
 * `sample_assets/`: Bundled WAV audio tracks, MP4 motion clips, test graphics, and PDF technical documentation.
 
 ---

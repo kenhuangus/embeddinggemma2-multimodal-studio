@@ -4,10 +4,7 @@ import json
 import asyncio
 from typing import Dict, Any, Optional, AsyncGenerator, List
 import numpy as np
-import torch
 from PIL import Image
-from sentence_transformers import SentenceTransformer
-from transformers.video_utils import load_video
 
 MODEL_ID = "google/embeddinggemma-2"
 
@@ -63,7 +60,7 @@ class EmbeddingGemmaEngine:
             "supported_modalities": cfg_info["supported_modalities"],
             "available_configs": {k: {"name": v["name"], "params": v["params"], "description": v["description"]} for k, v in CONFIG_OPTIONS.items()},
             "load_time": f"{self.load_time_seconds:.2f}s",
-            "device": "CPU" if not torch.cuda.is_available() else "CUDA"
+            "device": "CPU"
         }
 
     def load_model(self, config_key: str = "full"):
@@ -73,6 +70,7 @@ class EmbeddingGemmaEngine:
         start = time.time()
         self.is_loading = True
         try:
+            from sentence_transformers import SentenceTransformer
             cfg = CONFIG_OPTIONS[config_key]
             self.model = SentenceTransformer(
                 MODEL_ID,
@@ -136,6 +134,7 @@ class EmbeddingGemmaEngine:
         elif modality == "video":
             if not isinstance(content, str) or not os.path.exists(content):
                 raise ValueError(f"Video file path does not exist: {content}")
+            from transformers.video_utils import load_video
             # Safely sample 2 frames uniformly using PyAV to maintain low latency and prevent decoder errors
             res = load_video(content, num_frames=2, backend="pyav")
             frames = res[0] if isinstance(res, tuple) else res

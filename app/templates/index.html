@@ -1687,7 +1687,7 @@
         media_path: attach ? attach.path : null,
         media_url: attach ? attach.url : null,
         filename: attach ? attach.filename : null,
-        history: conversationHistory.slice(-10),
+        history: conversationHistory.slice(0, -1).slice(-10),
         truncate_dim: 768
       };
 
